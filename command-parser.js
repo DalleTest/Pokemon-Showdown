@@ -31,6 +31,8 @@ const MESSAGE_COOLDOWN = 5 * 60 * 1000;
 const MAX_PARSE_RECURSION = 10;
 
 var fs = require('fs');
+var path = require('path');
+var parseEmoticons = require('./chat-plugins/emoticons');
 
 /*********************************************************
  * Load command files
@@ -427,7 +429,9 @@ var parse = exports.parse = function (message, room, user, connection, levelsDee
 		return parse(message, room, user, connection, levelsDeep + 1);
 	}
 
-	return message;
+	if (parseEmoticons(message, room, user)) return;
+
+	return message || false;
 };
 
 exports.package = {};

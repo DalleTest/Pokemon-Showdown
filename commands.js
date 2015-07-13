@@ -13,6 +13,7 @@
 
 var crypto = require('crypto');
 var fs = require('fs');
+var parseEmoticons = require('./chat-plugins/emoticons');
 
 const MAX_REASON_LENGTH = 300;
 
@@ -152,6 +153,9 @@ var commands = exports.commands = {
 				return connection.send('|pm|' + user.getIdentity() + '|' + targetUser.getIdentity() + "|/text The command '/" + innerCmd + "' was unrecognized or unavailable in private messages. To send a message starting with '/" + innerCmd + "', type '//" + innerCmd + "'.");
 			}
 		}
+
+		var emoteMsg = parseEmoticons(target, room, user, true);
+		if (emoteMsg) target = '/html ' + emoteMsg;
 
 		var message = '|pm|' + user.getIdentity() + '|' + targetUser.getIdentity() + '|' + target;
 		user.send(message);
