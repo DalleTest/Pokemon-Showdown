@@ -46,6 +46,14 @@ exports.Formats = [
 		team: 'random',
 		ruleset: ['PotD', 'Pokemon', 'Sleep Clause Mod', 'HP Percentage Mod', 'Cancel Mod']
 	},
+    {
+        name: "[Gen 5] Random Battle",
+        section: "DALLE RULES",
+
+        mod: 'gen5random',
+        team: 'random',
+        ruleset: ['PotD', 'Pokemon', 'Sleep Clause Mod', 'HP Percentage Mod', 'Cancel Mod']
+    },
 
         {
 		name: "[Gen 6] Metronome Battle",
