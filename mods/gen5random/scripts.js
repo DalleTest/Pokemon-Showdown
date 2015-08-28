@@ -5,7 +5,7 @@
 exports.BattleScripts = {
 	inherit: 'gen4',
     gen:4,
-
+    
     randomTeam: function (side) {
 		// Get what we need ready.
 		var keys = [];
@@ -15,7 +15,7 @@ exports.BattleScripts = {
 
 		// We need to check it's one of the first 151 because formats data are installed onto main format data, not replaced.
 		for (var n in this.data.FormatsData) {
-			if (this.data.FormatsData[n].randomBattleMoves && i < 252) {
+			if (this.data.FormatsData[n].randomBattleMoves && i < 494) {
 				keys.push(n);
 			}
 			i++;
@@ -93,6 +93,6 @@ exports.BattleScripts = {
 
 		return pokemon;
 	}
-
-
+    
+    
 };

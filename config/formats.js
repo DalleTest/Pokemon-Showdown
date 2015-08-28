@@ -2,9 +2,9 @@
 // The rules that formats use are stored in data/rulesets.js
 
 exports.Formats = [
-    
+
      //////////EIGENE
-    
+
     {
 		name: "RANDOM FUNNY SHIT",
 		section: "DALLE RULES",
@@ -13,12 +13,20 @@ exports.Formats = [
 		team: 'random',
 		ruleset: ['PotD', 'Pokemon', 'Sleep Clause Mod', 'HP Percentage Mod', 'Cancel Mod']
 	},
-    
+
     {
 		name: "[Gen 1] Random Battle",
 		section: "DALLE RULES",
 
 		mod: 'gen1',
+		team: 'random',
+		ruleset: ['Pokemon', 'Sleep Clause Mod', 'Freeze Clause Mod', 'HP Percentage Mod', 'Cancel Mod']
+    },
+    {
+		name: "[Gen 2] Random Battle",
+		section: "DALLE RULES",
+
+		mod: 'gen2random',
 		team: 'random',
 		ruleset: ['Pokemon', 'Sleep Clause Mod', 'Freeze Clause Mod', 'HP Percentage Mod', 'Cancel Mod']
     },
@@ -30,7 +38,7 @@ exports.Formats = [
 		team: 'random',
 		ruleset: ['PotD', 'Pokemon', 'Sleep Clause Mod', 'HP Percentage Mod', 'Cancel Mod']
 	},
-    
+
         {
 		name: "[Gen 6] Metronome Battle",
 		section: "DALLE RULES",
