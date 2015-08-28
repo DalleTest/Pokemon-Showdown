@@ -31,6 +31,14 @@ exports.Formats = [
 		ruleset: ['Pokemon', 'Sleep Clause Mod', 'Freeze Clause Mod', 'HP Percentage Mod', 'Cancel Mod']
     },
     {
+        name: "[Gen 3] Random Battle",
+        section: "DALLE RULES",
+
+        mod: 'gen3random',
+        team: 'random',
+        ruleset: ['Pokemon', 'Sleep Clause Mod', 'Freeze Clause Mod', 'HP Percentage Mod', 'Cancel Mod']
+    },
+    {
 		name: "[Gen 4] Random Battle",
 		section: "DALLE RULES",
 
