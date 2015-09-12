@@ -4,7 +4,7 @@
 exports.Formats = [
 
      //////////EIGENE
-
+/*
     {
 		name: "RANDOM FUNNY SHIT",
 		section: "DALLE RULES",
@@ -12,7 +12,7 @@ exports.Formats = [
         mod: 'randomfunnyshit',
 		team: 'random',
 		ruleset: ['PotD', 'Pokemon', 'Sleep Clause Mod', 'HP Percentage Mod', 'Cancel Mod']
-	},
+	}, */
 
     {
 		name: "[Gen 1] Random Battle",
