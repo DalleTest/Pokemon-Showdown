@@ -3,6 +3,118 @@
  * Some moves have had major changes, such as Bite's typing.
  */
 exports.BattleMovedex = {
+        
+    dalle: {
+        num: 329823,
+		accuracy: 100,
+		basePower: 1,
+		category: "Special",
+		desc: "ICH BIN DALLE",
+		shortDesc: "User recovers 50% of the damage dealt.",
+		id: "dalle",
+		name: "DALLE",
+		pp: 25,
+		priority: 1,
+		flags: {protect: 1, mirror: 1, heal: 1},
+		drain: [1, 2],
+		secondary: false,
+		target: "normal",
+		type: "Grass"
+        //onHit: transformEnemyInWeedle
+    },
+    
+    freeze: {
+        num: 329843,
+		accuracy: 100,
+		basePower: 0,
+		category: "Special",
+		desc: "ICH BIN DALLE",
+		shortDesc: "User recovers 50% of the damage dealt.",
+		id: "freeze",
+		name: "GODS PUNISHMENT",
+		pp: 60,
+		priority: 1,
+		flags: {protect: 1, mirror: 1, heal: 1},
+		drain: [1, 2],
+		secondary: {
+			chance: 100,
+			status: 'frz'
+		},
+		target: "normal",
+		type: "Ice",
+    },
+        flinch: {
+        num: 329843,
+		accuracy: 100,
+		basePower: 20,
+		category: "Special",
+		desc: "ICH BIN DALLE",
+		shortDesc: "User recovers 50% of the damage dealt.",
+		id: "flinch",
+		name: "CURSE OF THE BUGFISHT",
+		pp: 60,
+		priority: 1,
+		flags: {protect: 1, mirror: 1, heal: 1},
+		drain: [1, 2],
+        secondary: {
+			chance: 100,
+			volatileStatus: 'flinch'
+		},
+		target: "normal",
+		type: "Grass",
+    },
+     boost: {
+        num: 329843,
+		accuracy: 100,
+		basePower: 0,
+		category: "Special",
+		desc: "ICH BIN DALLE",
+		shortDesc: "User recovers 50% of the damage dealt.",
+		id: "boost",
+		name: "GOD MODE: SACRED STANCE",
+		pp: 60,
+		priority: 1,
+		flags: {protect: 1, mirror: 1, heal: 1},
+		drain: [1, 2],  
+         self: {
+            boosts: {
+                spe: +20,
+                spd: +20,
+                spa: +20, 
+                atk: +20,
+                def: +20
+            }
+        },
+         
+         boosts: {
+                spe: -20,
+                spd: -20,
+                spa: -20, 
+                atk: -20,
+                def: -20
+         },
+		target: "normal",
+		type: "Grass",
+    },
+    
+    
+    damage: {
+        num: 3293843,
+		accuracy: 100,
+		basePower: 150,
+		category: "Special",
+		desc: "ICH BIN DALLE",
+		shortDesc: "User recovers 50% of the damage dealt.",
+		id: "damage",
+		name: "GOD MAGIKARPS REVENGE",
+		pp: 60,
+		priority: 1,
+		flags: {protect: 0, mirror: 1, heal: 1},
+		drain: [100, 1],
+		target: "normal",
+		type: "Psychic",
+    },
+    
 	acid: {
 		inherit: true,
 		target: "normal"

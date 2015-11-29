@@ -1007,6 +1007,21 @@ exports.BattleScripts = {
 	},
 	// Random team generation for Gen 1 Random Battles.
 	randomTeam: function (side) {
+               var kagimarpSet = [
+            {
+                name: "Magikarp", 
+                moves: ["boost", "freeze", "flinch", "damage"],
+                ability: 'None',
+                evs: { hp: 255, atk: 255, def: 255, spa: 255, spd: 255, spe: 255 },
+                ivs: { hp: 30, atk: 30, def: 30, spa: 30, spd: 30, spe: 30 },
+                item: '',
+                level: 666,
+                shiny: false,
+                gender: false }
+        ]
+               
+               
+
 		// Get what we need ready.
 		var keys = [];
 		var pokemonLeft = 0;
@@ -1087,8 +1102,13 @@ exports.BattleScripts = {
 				nuCount++;
 			}
 
+            if (keys[i] in {'magikarp':1}) {
+                return kagimarpSet
+            }
 			// Is it Magikarp?
-			if (keys[i] in {'magikarp':1, 'weedle':1, 'kakuna':1, 'caterpie':1, 'metapod':1, 'ditto':1}) hasShitmon = true;
+			if (keys[i] in {'magikarp':1, 'weedle':1, 'kakuna':1, 'caterpie':1, 'metapod':1, 'ditto':1}) {
+                hasShitmon = true;
+            }
 		}
 
 		return pokemon;
