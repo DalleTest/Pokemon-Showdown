@@ -1,3 +1,5 @@
+'use strict';
+
 exports.BattleItems = {
 	"abomasite": {
 		id: "abomasite",
@@ -53,7 +55,7 @@ exports.BattleItems = {
 		onBasePowerPriority: 6,
 		onBasePower: function (basePower, user, target, move) {
 			if (move && user.baseTemplate.species === 'Dialga' && (move.type === 'Steel' || move.type === 'Dragon')) {
-				return this.chainModify(1.2);
+				return this.chainModify([0x1333, 0x1000]);
 			}
 		},
 		num: 135,
@@ -94,13 +96,16 @@ exports.BattleItems = {
 		spritenum: 5,
 		isBerry: true,
 		naturalGift: {
-			basePower: 60,
+			basePower: 80,
 			type: "Dragon"
 		},
 		onUpdate: function (pokemon) {
 			if (pokemon.hp <= pokemon.maxhp / 2) {
 				pokemon.eatItem();
 			}
+		},
+		onEatItem: function (item, pokemon) {
+			if (!this.runEvent('TryHeal', pokemon)) return false;
 		},
 		onEat: function (pokemon) {
 			this.heal(pokemon.maxhp / 8);
@@ -120,14 +125,16 @@ exports.BattleItems = {
 			basePower: 10
 		},
 		onStart: function (target) {
-			this.add('-item', target, 'Air Balloon');
+			if (!target.ignoringItem() && !this.getPseudoWeather('gravity')) {
+				this.add('-item', target, 'Air Balloon');
+			}
 		},
 		onImmunity: function (type) {
 			if (type === 'Ground') return false;
 		},
 		onAfterDamage: function (damage, target, source, effect) {
 			this.debug('effect: ' + effect.id);
-			if (effect.effectType === 'Move') {
+			if (effect.effectType === 'Move' && effect.id !== 'confused') {
 				this.add('-enditem', target, 'Air Balloon');
 				target.item = '';
 				this.itemData = {id: '', target: this};
@@ -136,7 +143,7 @@ exports.BattleItems = {
 		},
 		onAfterSubDamage: function (damage, target, source, effect) {
 			this.debug('effect: ' + effect.id);
-			if (effect.effectType === 'Move') {
+			if (effect.effectType === 'Move' && effect.id !== 'confused') {
 				this.add('-enditem', target, 'Air Balloon');
 				target.setItem('');
 			}
@@ -253,7 +260,7 @@ exports.BattleItems = {
 		onModifySpD: function (spd) {
 			return this.chainModify(1.5);
 		},
-		onModifyPokemon: function (pokemon) {
+		onDisableMove: function (pokemon) {
 			var moves = pokemon.moveset;
 			for (var i = 0; i < moves.length; i++) {
 				if (this.getMove(moves[i].move).category === 'Status') {
@@ -289,7 +296,7 @@ exports.BattleItems = {
 			type: "Steel"
 		},
 		onSourceModifyDamage: function (damage, source, target, move) {
-			if (move.type === 'Steel' && target.runEffectiveness(move) > 0 && !target.volatiles['substitute']) {
+			if (move.type === 'Steel' && move.typeMod > 0 && !target.volatiles['substitute']) {
 				if (target.eatItem()) {
 					this.debug('-50% reduction');
 					return this.chainModify(0.5);
@@ -340,7 +347,7 @@ exports.BattleItems = {
 		},
 		num: 183,
 		gen: 3,
-		desc: "No competitive use."
+		desc: "Cannot be eaten by the holder. No effect when eaten with Bug Bite or Pluck."
 	},
 	"berryjuice": {
 		id: "berryjuice",
@@ -351,7 +358,7 @@ exports.BattleItems = {
 		},
 		onUpdate: function (pokemon) {
 			if (pokemon.hp <= pokemon.maxhp / 2) {
-				if (pokemon.useItem()) {
+				if (this.runEvent('TryHeal', pokemon) && pokemon.useItem()) {
 					this.heal(20);
 				}
 			}
@@ -400,7 +407,7 @@ exports.BattleItems = {
 		onBasePowerPriority: 6,
 		onBasePower: function (basePower, user, target, move) {
 			if (move && move.type === 'Fighting') {
-				return this.chainModify(1.2);
+				return this.chainModify([0x1333, 0x1000]);
 			}
 		},
 		num: 241,
@@ -437,7 +444,7 @@ exports.BattleItems = {
 		onBasePowerPriority: 6,
 		onBasePower: function (basePower, user, target, move) {
 			if (move && move.type === 'Dark') {
-				return this.chainModify(1.2);
+				return this.chainModify([0x1333, 0x1000]);
 			}
 		},
 		num: 240,
@@ -508,7 +515,7 @@ exports.BattleItems = {
 		},
 		num: 165,
 		gen: 3,
-		desc: "No competitive use."
+		desc: "Cannot be eaten by the holder. No effect when eaten with Bug Bite or Pluck."
 	},
 	"brightpowder": {
 		id: "brightpowder",
@@ -517,7 +524,7 @@ exports.BattleItems = {
 		fling: {
 			basePower: 10
 		},
-		onAccuracy: function (accuracy) {
+		onModifyAccuracy: function (accuracy) {
 			if (typeof accuracy !== 'number') return;
 			this.debug('brightpowder - decreasing accuracy');
 			return accuracy * 0.9;
@@ -556,6 +563,7 @@ exports.BattleItems = {
 			return true;
 		},
 		onDrive: 'Fire',
+		forcedForme: "Genesect-Burn",
 		num: 118,
 		gen: 5,
 		desc: "Holder's Techno Blast is Fire type."
@@ -600,7 +608,7 @@ exports.BattleItems = {
 		onBasePowerPriority: 6,
 		onBasePower: function (basePower, user, target, move) {
 			if (move && move.type === 'Fire') {
-				return this.chainModify(1.2);
+				return this.chainModify([0x1333, 0x1000]);
 			}
 		},
 		num: 249,
@@ -645,7 +653,7 @@ exports.BattleItems = {
 			type: "Rock"
 		},
 		onSourceModifyDamage: function (damage, source, target, move) {
-			if (move.type === 'Rock' && target.runEffectiveness(move) > 0 && !target.volatiles['substitute']) {
+			if (move.type === 'Rock' && move.typeMod > 0 && !target.volatiles['substitute']) {
 				if (target.eatItem()) {
 					this.debug('-50% reduction');
 					return this.chainModify(0.5);
@@ -744,6 +752,7 @@ exports.BattleItems = {
 			return true;
 		},
 		onDrive: 'Ice',
+		forcedForme: "Genesect-Chill",
 		num: 119,
 		gen: 5,
 		desc: "Holder's Techno Blast is Ice type."
@@ -789,8 +798,8 @@ exports.BattleItems = {
 		onModifyMove: function (move, pokemon) {
 			pokemon.addVolatile('choicelock');
 		},
-		onModifySpe: function (speMod) {
-			return this.chain(speMod, 1.5);
+		onModifySpe: function (spe) {
+			return this.chainModify(1.5);
 		},
 		isChoice: true,
 		num: 287,
@@ -832,7 +841,7 @@ exports.BattleItems = {
 			type: "Fighting"
 		},
 		onSourceModifyDamage: function (damage, source, target, move) {
-			if (move.type === 'Fighting' && target.runEffectiveness(move) > 0 && !target.volatiles['substitute']) {
+			if (move.type === 'Fighting' && move.typeMod > 0 && !target.volatiles['substitute']) {
 				if (target.eatItem()) {
 					this.debug('-50% reduction');
 					return this.chainModify(0.5);
@@ -865,7 +874,7 @@ exports.BattleItems = {
 			type: "Flying"
 		},
 		onSourceModifyDamage: function (damage, source, target, move) {
-			if (move.type === 'Flying' && target.runEffectiveness(move) > 0 && !target.volatiles['substitute']) {
+			if (move.type === 'Flying' && move.typeMod > 0 && !target.volatiles['substitute']) {
 				if (target.eatItem()) {
 					this.debug('-50% reduction');
 					return this.chainModify(0.5);
@@ -887,7 +896,7 @@ exports.BattleItems = {
 			type: "Dark"
 		},
 		onSourceModifyDamage: function (damage, source, target, move) {
-			if (move.type === 'Dark' && target.runEffectiveness(move) > 0 && !target.volatiles['substitute']) {
+			if (move.type === 'Dark' && move.typeMod > 0 && !target.volatiles['substitute']) {
 				if (target.eatItem()) {
 					this.debug('-50% reduction');
 					return this.chainModify(0.5);
@@ -910,7 +919,7 @@ exports.BattleItems = {
 		},
 		num: 175,
 		gen: 3,
-		desc: "No competitive use."
+		desc: "Cannot be eaten by the holder. No effect when eaten with Bug Bite or Pluck."
 	},
 	"coverfossil": {
 		id: "coverfossil",
@@ -1070,6 +1079,7 @@ exports.BattleItems = {
 			return true;
 		},
 		onDrive: 'Water',
+		forcedForme: "Genesect-Douse",
 		num: 116,
 		gen: 5,
 		desc: "Holder's Techno Blast is Water type."
@@ -1082,7 +1092,7 @@ exports.BattleItems = {
 		onBasePowerPriority: 6,
 		onBasePower: function (basePower, user, target, move) {
 			if (move && move.type === 'Dragon') {
-				return this.chainModify(1.2);
+				return this.chainModify([0x1333, 0x1000]);
 			}
 		},
 		onTakeItem: function (item, pokemon, source) {
@@ -1091,6 +1101,7 @@ exports.BattleItems = {
 			}
 			return true;
 		},
+		forcedForme: "Arceus-Dragon",
 		num: 311,
 		gen: 4,
 		desc: "Holder's Dragon-type attacks have 1.2x power. Judgment is Dragon type."
@@ -1105,7 +1116,7 @@ exports.BattleItems = {
 		onBasePowerPriority: 6,
 		onBasePower: function (basePower, user, target, move) {
 			if (move && move.type === 'Dragon') {
-				return this.chainModify(1.2);
+				return this.chainModify([0x1333, 0x1000]);
 			}
 		},
 		num: 250,
@@ -1139,7 +1150,7 @@ exports.BattleItems = {
 		onBasePowerPriority: 6,
 		onBasePower: function (basePower, user, target, move) {
 			if (move && move.type === 'Dark') {
-				return this.chainModify(1.2);
+				return this.chainModify([0x1333, 0x1000]);
 			}
 		},
 		onTakeItem: function (item, pokemon, source) {
@@ -1148,6 +1159,7 @@ exports.BattleItems = {
 			}
 			return true;
 		},
+		forcedForme: "Arceus-Dark",
 		num: 312,
 		gen: 4,
 		desc: "Holder's Dark-type attacks have 1.2x power. Judgment is Dark type."
@@ -1171,7 +1183,7 @@ exports.BattleItems = {
 		},
 		num: 182,
 		gen: 3,
-		desc: "No competitive use."
+		desc: "Cannot be eaten by the holder. No effect when eaten with Bug Bite or Pluck."
 	},
 	"duskball": {
 		id: "duskball",
@@ -1189,7 +1201,7 @@ exports.BattleItems = {
 		onBasePowerPriority: 6,
 		onBasePower: function (basePower, user, target, move) {
 			if (move && move.type === 'Ground') {
-				return this.chainModify(1.2);
+				return this.chainModify([0x1333, 0x1000]);
 			}
 		},
 		onTakeItem: function (item, pokemon, source) {
@@ -1198,6 +1210,7 @@ exports.BattleItems = {
 			}
 			return true;
 		},
+		forcedForme: "Arceus-Ground",
 		num: 305,
 		gen: 4,
 		desc: "Holder's Ground-type attacks have 1.2x power. Judgment is Ground type."
@@ -1240,7 +1253,7 @@ exports.BattleItems = {
 		spritenum: 120,
 		isGem: true,
 		onSourceTryPrimaryHit: function (target, source, move) {
-			if (target === source || move.category === 'Status') return;
+			if (target === source || move.category === 'Status' || move.id in {firepledge:1, grasspledge:1, waterpledge:1}) return;
 			if (move.type === 'Electric') {
 				if (source.useItem()) {
 					this.add('-enditem', source, 'Electric Gem', '[from] gem', '[move] ' + move.name);
@@ -1272,18 +1285,13 @@ exports.BattleItems = {
 			basePower: 100,
 			type: "Bug"
 		},
-		onSourceBasePower: function (basePower, user, target, move) {
-			if (move && target.runEffectiveness(move) > 0) {
-				target.addVolatile('enigmaberry');
+		onHit: function (target, source, move) {
+			if (move && move.typeMod > 0) {
+				target.eatItem();
 			}
 		},
-		effect: {
-			duration: 1,
-			onUpdate: function (target) {
-				if (target.eatItem()) {
-					target.removeVolatile('enigmaberry');
-				}
-			}
+		onEatItem: function (item, pokemon) {
+			if (!this.runEvent('TryHeal', pokemon)) return false;
 		},
 		onEat: function (pokemon) {
 			this.heal(pokemon.maxhp / 4);
@@ -1323,8 +1331,8 @@ exports.BattleItems = {
 			basePower: 10
 		},
 		onModifyDamage: function (damage, source, target, move) {
-			if (move && target.runEffectiveness(move) > 0) {
-				return this.chainModify(1.2);
+			if (move && move.typeMod > 0) {
+				return this.chainModify([0x1333, 0x1000]);
 			}
 		},
 		num: 268,
@@ -1391,6 +1399,9 @@ exports.BattleItems = {
 				pokemon.eatItem();
 			}
 		},
+		onEatItem: function (item, pokemon) {
+			if (!this.runEvent('TryHeal', pokemon)) return false;
+		},
 		onEat: function (pokemon) {
 			this.heal(pokemon.maxhp / 8);
 			if (pokemon.getNature().minus === 'atk') {
@@ -1408,7 +1419,7 @@ exports.BattleItems = {
 		spritenum: 141,
 		isGem: true,
 		onSourceTryPrimaryHit: function (target, source, move) {
-			if (target === source || move.category === 'Status') return;
+			if (target === source || move.category === 'Status' || move.id in {firepledge:1, grasspledge:1, waterpledge:1}) return;
 			if (move.type === 'Fire') {
 				if (source.useItem()) {
 					this.add('-enditem', source, 'Fire Gem', '[from] gem', '[move] ' + move.name);
@@ -1428,7 +1439,7 @@ exports.BattleItems = {
 		onBasePowerPriority: 6,
 		onBasePower: function (basePower, user, target, move) {
 			if (move && move.type === 'Fighting') {
-				return this.chainModify(1.2);
+				return this.chainModify([0x1333, 0x1000]);
 			}
 		},
 		onTakeItem: function (item, pokemon, source) {
@@ -1437,6 +1448,7 @@ exports.BattleItems = {
 			}
 			return true;
 		},
+		forcedForme: "Arceus-Fighting",
 		num: 303,
 		gen: 4,
 		desc: "Holder's Fighting-type attacks have 1.2x power. Judgment is Fighting type."
@@ -1466,7 +1478,7 @@ exports.BattleItems = {
 		onBasePowerPriority: 6,
 		onBasePower: function (basePower, user, target, move) {
 			if (move && move.type === 'Fire') {
-				return this.chainModify(1.2);
+				return this.chainModify([0x1333, 0x1000]);
 			}
 		},
 		onTakeItem: function (item, pokemon, source) {
@@ -1475,6 +1487,7 @@ exports.BattleItems = {
 			}
 			return true;
 		},
+		forcedForme: "Arceus-Fire",
 		num: 298,
 		gen: 4,
 		desc: "Holder's Fire-type attacks have 1.2x power. Judgment is Fire type."
@@ -1688,7 +1701,7 @@ exports.BattleItems = {
 		spritenum: 172,
 		isGem: true,
 		onSourceTryPrimaryHit: function (target, source, move) {
-			if (target === source || move.category === 'Status') return;
+			if (target === source || move.category === 'Status' || move.id in {firepledge:1, grasspledge:1, waterpledge:1}) return;
 			if (move.type === 'Grass') {
 				if (source.useItem()) {
 					this.add('-enditem', source, 'Grass Gem', '[from] gem', '[move] ' + move.name);
@@ -1719,7 +1732,7 @@ exports.BattleItems = {
 		},
 		num: 173,
 		gen: 3,
-		desc: "No competitive use."
+		desc: "Cannot be eaten by the holder. No effect when eaten with Bug Bite or Pluck."
 	},
 	"gripclaw": {
 		id: "gripclaw",
@@ -1743,7 +1756,7 @@ exports.BattleItems = {
 		onBasePowerPriority: 6,
 		onBasePower: function (basePower, user, target, move) {
 			if (user.baseTemplate.num === 487 && (move.type === 'Ghost' || move.type === 'Dragon')) {
-				return this.chainModify(1.2);
+				return this.chainModify([0x1333, 0x1000]);
 			}
 		},
 		onTakeItem: function (item, pokemon, source) {
@@ -1752,6 +1765,7 @@ exports.BattleItems = {
 			}
 			return true;
 		},
+		forcedForme: "Giratina-Origin",
 		num: 112,
 		gen: 4,
 		desc: "If holder is a Giratina, its Ghost- and Dragon-type attacks have 1.2x power."
@@ -1799,7 +1813,7 @@ exports.BattleItems = {
 			type: "Dragon"
 		},
 		onSourceModifyDamage: function (damage, source, target, move) {
-			if (move.type === 'Dragon' && target.runEffectiveness(move) > 0 && !target.volatiles['substitute']) {
+			if (move.type === 'Dragon' && move.typeMod > 0 && !target.volatiles['substitute']) {
 				if (target.eatItem()) {
 					this.debug('-50% reduction');
 					return this.chainModify(0.5);
@@ -1821,7 +1835,7 @@ exports.BattleItems = {
 		onBasePowerPriority: 6,
 		onBasePower: function (basePower, user, target, move) {
 			if (move && move.type === 'Rock') {
-				return this.chainModify(1.2);
+				return this.chainModify([0x1333, 0x1000]);
 			}
 		},
 		num: 238,
@@ -1891,7 +1905,7 @@ exports.BattleItems = {
 		},
 		num: 172,
 		gen: 3,
-		desc: "No competitive use."
+		desc: "Cannot be eaten by the holder. No effect when eaten with Bug Bite or Pluck."
 	},
 	"houndoominite": {
 		id: "houndoominite",
@@ -1920,6 +1934,9 @@ exports.BattleItems = {
 			if (pokemon.hp <= pokemon.maxhp / 2) {
 				pokemon.eatItem();
 			}
+		},
+		onEatItem: function (item, pokemon) {
+			if (!this.runEvent('TryHeal', pokemon)) return false;
 		},
 		onEat: function (pokemon) {
 			this.heal(pokemon.maxhp / 8);
@@ -1958,7 +1975,7 @@ exports.BattleItems = {
 		onBasePowerPriority: 6,
 		onBasePower: function (basePower, user, target, move) {
 			if (move.type === 'Ice') {
-				return this.chainModify(1.2);
+				return this.chainModify([0x1333, 0x1000]);
 			}
 		},
 		onTakeItem: function (item, pokemon, source) {
@@ -1967,6 +1984,7 @@ exports.BattleItems = {
 			}
 			return true;
 		},
+		forcedForme: "Arceus-Ice",
 		num: 302,
 		gen: 4,
 		desc: "Holder's Ice-type attacks have 1.2x power. Judgment is Ice type."
@@ -1990,7 +2008,7 @@ exports.BattleItems = {
 		onBasePowerPriority: 6,
 		onBasePower: function (basePower, user, target, move) {
 			if (move.type === 'Bug') {
-				return this.chainModify(1.2);
+				return this.chainModify([0x1333, 0x1000]);
 			}
 		},
 		onTakeItem: function (item, pokemon, source) {
@@ -1999,6 +2017,7 @@ exports.BattleItems = {
 			}
 			return true;
 		},
+		forcedForme: "Arceus-Bug",
 		num: 308,
 		gen: 4,
 		desc: "Holder's Bug-type attacks have 1.2x power. Judgment is Bug type."
@@ -2010,12 +2029,15 @@ exports.BattleItems = {
 		fling: {
 			basePower: 130
 		},
-		onModifyPokemon: function (pokemon) {
-			if (pokemon.negateImmunity['Ground']) return;
-			pokemon.negateImmunity['Ground'] = 'IgnoreEffectiveness';
+		onEffectiveness: function (typeMod, target, type, move) {
+			if (target.volatiles['ingrain'] || target.volatiles['smackdown'] || this.getPseudoWeather('gravity')) return;
+			if (move.type === 'Ground' && !this.getImmunity(move.type, target)) return 0;
 		},
-		onModifySpe: function (speMod) {
-			return this.chain(speMod, 0.5);
+		onNegateImmunity: function (pokemon, type) {
+			if (type === 'Ground') return false;
+		},
+		onModifySpe: function (spe) {
+			return this.chainModify(0.5);
 		},
 		num: 278,
 		gen: 4,
@@ -2029,7 +2051,7 @@ exports.BattleItems = {
 		onBasePowerPriority: 6,
 		onBasePower: function (basePower, user, target, move) {
 			if (move.type === 'Steel') {
-				return this.chainModify(1.2);
+				return this.chainModify([0x1333, 0x1000]);
 			}
 		},
 		onTakeItem: function (item, pokemon, source) {
@@ -2038,6 +2060,7 @@ exports.BattleItems = {
 			}
 			return true;
 		},
+		forcedForme: "Arceus-Steel",
 		num: 313,
 		gen: 4,
 		desc: "Holder's Steel-type attacks have 1.2x power. Judgment is Steel type."
@@ -2073,7 +2096,7 @@ exports.BattleItems = {
 			type: "Ghost"
 		},
 		onSourceModifyDamage: function (damage, source, target, move) {
-			if (move.type === 'Ghost' && target.runEffectiveness(move) > 0 && !target.volatiles['substitute']) {
+			if (move.type === 'Ghost' && move.typeMod > 0 && !target.volatiles['substitute']) {
 				if (target.eatItem()) {
 					this.debug('-50% reduction');
 					return this.chainModify(0.5);
@@ -2095,7 +2118,7 @@ exports.BattleItems = {
 			type: "Poison"
 		},
 		onSourceModifyDamage: function (damage, source, target, move) {
-			if (move.type === 'Poison' && target.runEffectiveness(move) > 0 && !target.volatiles['substitute']) {
+			if (move.type === 'Poison' && move.typeMod > 0 && !target.volatiles['substitute']) {
 				if (target.eatItem()) {
 					this.debug('-50% reduction');
 					return this.chainModify(0.5);
@@ -2116,7 +2139,7 @@ exports.BattleItems = {
 			basePower: 100,
 			type: "Fairy"
 		},
-		onAfterDamage: function (damage, target, source, move) {
+		onAfterMoveSecondary: function (target, source, move) {
 			if (move.category === 'Physical') {
 				target.eatItem();
 			}
@@ -2126,7 +2149,7 @@ exports.BattleItems = {
 		},
 		num: -6,
 		gen: 6,
-		desc: "Raises holder's Defense by 1 stage if hit by a physical attack. Single use."
+		desc: "Raises holder's Defense by 1 stage after it is hit by a physical attack. Single use."
 	},
 	"kelpsyberry": {
 		id: "kelpsyberry",
@@ -2139,7 +2162,7 @@ exports.BattleItems = {
 		},
 		num: 170,
 		gen: 3,
-		desc: "No competitive use."
+		desc: "Cannot be eaten by the holder. No effect when eaten with Bug Bite or Pluck."
 	},
 	"kangaskhanite": {
 		id: "kangaskhanite",
@@ -2163,6 +2186,7 @@ exports.BattleItems = {
 			basePower: 30,
 			volatileStatus: 'flinch'
 		},
+		onModifyMovePriority: -1,
 		onModifyMove: function (move) {
 			if (move.category !== "Status") {
 				if (!move.secondaries) move.secondaries = [];
@@ -2251,7 +2275,7 @@ exports.BattleItems = {
 		fling: {
 			basePower: 10
 		},
-		onAccuracy: function (accuracy) {
+		onModifyAccuracy: function (accuracy) {
 			if (typeof accuracy !== 'number') return;
 			this.debug('lax incense - decreasing accuracy');
 			return accuracy * 0.9;
@@ -2300,16 +2324,29 @@ exports.BattleItems = {
 				pokemon.removeVolatile('leppaberry');
 			} else {
 				var pp = 99;
-				for (var i in pokemon.moveset) {
-					if (pokemon.moveset[i].pp < pp) {
-						move = pokemon.moveset[i];
+				for (var moveid in pokemon.moveset) {
+					if (pokemon.moveset[moveid].pp < pp) {
+						move = pokemon.moveset[moveid];
 						pp = move.pp;
 					}
 				}
 			}
 			move.pp += 10;
 			if (move.pp > move.maxpp) move.pp = move.maxpp;
-			this.add('-activate', pokemon, 'item: Leppa Berry', 'move: ' + move.name);
+			this.add('-activate', pokemon, 'item: Leppa Berry', move.move);
+			if (pokemon.item !== 'leppaberry') {
+				var foeActive = pokemon.side.foe.active;
+				var foeIsStale = false;
+				for (var i = 0; i < 1; i++) {
+					if (foeActive.isStale >= 2) {
+						foeIsStale = true;
+						break;
+					}
+				}
+				if (!foeIsStale) return;
+			}
+			pokemon.isStale = 2;
+			pokemon.isStaleSource = 'useleppa';
 		},
 		num: 154,
 		gen: 3,
@@ -2352,18 +2389,11 @@ exports.BattleItems = {
 			basePower: 30
 		},
 		onModifyDamage: function (damage, source, target, move) {
-			if (source) {
-				source.addVolatile('lifeorb');
-				return this.chainModify(1.3);
-			}
+			return this.chainModify([0x14CC, 0x1000]);
 		},
-		effect: {
-			duration: 1,
-			onAfterMoveSecondarySelf: function (source, target, move) {
-				if (move && move.effectType === 'Move' && source && source.volatiles['lifeorb']) {
-					this.damage(source.maxhp / 10, source, source, this.getItem('lifeorb'));
-					source.removeVolatile('lifeorb');
-				}
+		onAfterMoveSecondarySelf: function (source, target, move) {
+			if (source && source !== target && move && move.category !== 'Status' && !move.ohko) {
+				this.damage(source.maxhp / 10, source, source, this.getItem('lifeorb'));
 			}
 		},
 		num: 270,
@@ -2514,7 +2544,7 @@ exports.BattleItems = {
 		onBasePowerPriority: 6,
 		onBasePower: function (basePower, user, target, move) {
 			if (move && user.baseTemplate.species === 'Palkia' && (move.type === 'Water' || move.type === 'Dragon')) {
-				return this.chainModify(1.2);
+				return this.chainModify([0x1333, 0x1000]);
 			}
 		},
 		num: 136,
@@ -2536,8 +2566,8 @@ exports.BattleItems = {
 		fling: {
 			basePower: 60
 		},
-		onModifySpe: function (speMod) {
-			return this.chain(speMod, 0.5);
+		onModifySpe: function (spe) {
+			return this.chainModify(0.5);
 		},
 		num: 215,
 		gen: 3,
@@ -2553,7 +2583,7 @@ exports.BattleItems = {
 		onBasePowerPriority: 6,
 		onBasePower: function (basePower, user, target, move) {
 			if (move.type === 'Electric') {
-				return this.chainModify(1.2);
+				return this.chainModify([0x1333, 0x1000]);
 			}
 		},
 		num: 242,
@@ -2573,6 +2603,9 @@ exports.BattleItems = {
 			if (pokemon.hp <= pokemon.maxhp / 2) {
 				pokemon.eatItem();
 			}
+		},
+		onEatItem: function (item, pokemon) {
+			if (!this.runEvent('TryHeal', pokemon)) return false;
 		},
 		onEat: function (pokemon) {
 			this.heal(pokemon.maxhp / 8);
@@ -2595,18 +2628,19 @@ exports.BattleItems = {
 		},
 		num: 176,
 		gen: 3,
-		desc: "No competitive use."
+		desc: "Cannot be eaten by the holder. No effect when eaten with Bug Bite or Pluck."
 	},
 	"mail": {
 		id: "mail",
 		name: "Mail",
 		spritenum: 403,
 		onTakeItem: function (item, source) {
-			if (!this.activeMove || this.activeMove.id !== 'knockoff') return false;
+			if (!this.activeMove) return false;
+			if (this.activeMove.id !== 'knockoff' && this.activeMove.id !== 'thief' && this.activeMove.id !== 'covet') return false;
 		},
 		isUnreleased: true,
 		gen: 2,
-		desc: "This item cannot be given to or taken from a Pokemon, except by Knock Off."
+		desc: "Cannot be given to or taken from a Pokemon, except by Covet/Knock Off/Thief."
 	},
 	"manectite": {
 		id: "manectite",
@@ -2631,7 +2665,7 @@ exports.BattleItems = {
 			basePower: 100,
 			type: "Dark"
 		},
-		onAfterDamage: function (damage, target, source, move) {
+		onAfterMoveSecondary: function (target, source, move) {
 			if (move.category === 'Special') {
 				target.eatItem();
 			}
@@ -2641,7 +2675,7 @@ exports.BattleItems = {
 		},
 		num: -6,
 		gen: 6,
-		desc: "Raises holder's Sp. Def by 1 stage if hit by a special attack. Single use."
+		desc: "Raises holder's Sp. Def by 1 stage after it is hit by a special attack. Single use."
 	},
 	"masterball": {
 		id: "masterball",
@@ -2673,7 +2707,7 @@ exports.BattleItems = {
 		onBasePowerPriority: 6,
 		onBasePower: function (basePower, user, target, move) {
 			if (move.type === 'Grass') {
-				return this.chainModify(1.2);
+				return this.chainModify([0x1333, 0x1000]);
 			}
 		},
 		onTakeItem: function (item, pokemon, source) {
@@ -2682,6 +2716,7 @@ exports.BattleItems = {
 			}
 			return true;
 		},
+		forcedForme: "Arceus-Grass",
 		num: 301,
 		gen: 4,
 		desc: "Holder's Grass-type attacks have 1.2x power. Judgment is Grass type."
@@ -2712,6 +2747,9 @@ exports.BattleItems = {
 					if (pokemon.volatiles[conditions[i]]) {
 						for (var j = 0; j < conditions.length; j++) {
 							pokemon.removeVolatile(conditions[j]);
+							if (conditions[j] === 'attract') {
+								this.add('-end', pokemon, 'move: Attract', '[from] item: Mental Herb');
+							}
 						}
 						return;
 					}
@@ -2725,6 +2763,9 @@ exports.BattleItems = {
 					if (!pokemon.useItem()) return;
 					for (var j = 0; j < conditions.length; j++) {
 						pokemon.removeVolatile(conditions[j]);
+						if (conditions[j] === 'attract') {
+							this.add('-end', pokemon, 'move: Attract', '[from] item: Mental Herb');
+						}
 					}
 					return;
 				}
@@ -2758,7 +2799,7 @@ exports.BattleItems = {
 		onBasePowerPriority: 6,
 		onBasePower: function (basePower, user, target, move) {
 			if (move.type === 'Steel') {
-				return this.chainModify(1.2);
+				return this.chainModify([0x1333, 0x1000]);
 			}
 		},
 		num: 233,
@@ -2774,7 +2815,7 @@ exports.BattleItems = {
 		spritenum: 287,
 		onModifyDefPriority: 2,
 		onModifyDef: function (def, pokemon) {
-			if (pokemon.template.species === 'Ditto') {
+			if (pokemon.template.species === 'Ditto' && !pokemon.transformed) {
 				return this.chainModify(2);
 			}
 		},
@@ -2811,8 +2852,8 @@ exports.BattleItems = {
 			},
 			onModifyDamage: function (damage, source, target, move) {
 				var numConsecutive = this.effectData.numConsecutive > 5 ? 5 : this.effectData.numConsecutive;
-				var dmgMod = [1, 1.2, 1.4, 1.6, 1.8, 2];
-				return this.chainModify(dmgMod[numConsecutive]);
+				var dmgMod = [0x1000, 0x1333, 0x1666, 0x1999, 0x1CCC, 0x2000];
+				return this.chainModify([dmgMod[numConsecutive], 0x1000]);
 			}
 		},
 		num: 277,
@@ -2866,11 +2907,11 @@ exports.BattleItems = {
 		},
 		effect: {
 			duration: 2,
-			onModifyMove: function (move, pokemon) {
-				this.add('-enditem', pokemon, 'Micle Berry');
-				pokemon.removeVolatile('micleberry');
-				if (typeof move.accuracy === 'number') {
-					move.accuracy *= 1.2;
+			onSourceModifyAccuracy: function (accuracy, target, source) {
+				this.add('-enditem', source, 'Micle Berry');
+				source.removeVolatile('micleberry');
+				if (typeof accuracy === 'number') {
+					return accuracy * 1.2;
 				}
 			}
 		},
@@ -2886,7 +2927,7 @@ exports.BattleItems = {
 		onBasePowerPriority: 6,
 		onBasePower: function (basePower, user, target, move) {
 			if (move.type === 'Psychic') {
-				return this.chainModify(1.2);
+				return this.chainModify([0x1333, 0x1000]);
 			}
 		},
 		onTakeItem: function (item, pokemon, source) {
@@ -2895,6 +2936,7 @@ exports.BattleItems = {
 			}
 			return true;
 		},
+		forcedForme: "Arceus-Psychic",
 		num: 307,
 		gen: 4,
 		desc: "Holder's Psychic-type attacks have 1.2x power. Judgment is Psychic type."
@@ -2909,7 +2951,7 @@ exports.BattleItems = {
 		onBasePowerPriority: 6,
 		onBasePower: function (basePower, user, target, move) {
 			if (move.type === 'Grass') {
-				return this.chainModify(1.2);
+				return this.chainModify([0x1333, 0x1000]);
 			}
 		},
 		num: 239,
@@ -2934,7 +2976,7 @@ exports.BattleItems = {
 		onBasePowerPriority: 6,
 		onBasePower: function (basePower, user, target, move) {
 			if (move.category === 'Physical') {
-				return this.chainModify(1.1);
+				return this.chainModify([0x1199, 0x1000]);
 			}
 		},
 		num: 266,
@@ -2951,7 +2993,7 @@ exports.BattleItems = {
 		onBasePowerPriority: 6,
 		onBasePower: function (basePower, user, target, move) {
 			if (move.type === 'Water') {
-				return this.chainModify(1.2);
+				return this.chainModify([0x1333, 0x1000]);
 			}
 		},
 		num: 243,
@@ -2969,7 +3011,7 @@ exports.BattleItems = {
 		},
 		num: 166,
 		gen: 3,
-		desc: "No competitive use."
+		desc: "Cannot be eaten by the holder. No effect when eaten with Bug Bite or Pluck."
 	},
 	"nestball": {
 		id: "nestball",
@@ -2997,7 +3039,7 @@ exports.BattleItems = {
 		onBasePowerPriority: 6,
 		onBasePower: function (basePower, user, target, move) {
 			if (move.type === 'Ice') {
-				return this.chainModify(1.2);
+				return this.chainModify([0x1333, 0x1000]);
 			}
 		},
 		num: 246,
@@ -3015,7 +3057,7 @@ exports.BattleItems = {
 		},
 		num: 178,
 		gen: 3,
-		desc: "No competitive use."
+		desc: "Cannot be eaten by the holder. No effect when eaten with Bug Bite or Pluck."
 	},
 	"normalgem": {
 		id: "normalgem",
@@ -3023,7 +3065,7 @@ exports.BattleItems = {
 		spritenum: 307,
 		isGem: true,
 		onSourceTryPrimaryHit: function (target, source, move) {
-			if (target === source || move.category === 'Status') return;
+			if (target === source || move.category === 'Status' || move.id in {firepledge:1, grasspledge:1, waterpledge:1}) return;
 			if (move.type === 'Normal') {
 				if (source.useItem()) {
 					this.add('-enditem', source, 'Normal Gem', '[from] gem', '[move] ' + move.name);
@@ -3045,7 +3087,7 @@ exports.BattleItems = {
 			type: "Fire"
 		},
 		onSourceModifyDamage: function (damage, source, target, move) {
-			if (move.type === 'Fire' && target.runEffectiveness(move) > 0 && !target.volatiles['substitute']) {
+			if (move.type === 'Fire' && move.typeMod > 0 && !target.volatiles['substitute']) {
 				if (target.eatItem()) {
 					this.debug('-50% reduction');
 					return this.chainModify(0.5);
@@ -3067,7 +3109,7 @@ exports.BattleItems = {
 		onBasePowerPriority: 6,
 		onBasePower: function (basePower, user, target, move) {
 			if (move.type === 'Psychic') {
-				return this.chainModify(1.2);
+				return this.chainModify([0x1333, 0x1000]);
 			}
 		},
 		num: 314,
@@ -3099,6 +3141,9 @@ exports.BattleItems = {
 				pokemon.eatItem();
 			}
 		},
+		onEatItem: function (item, pokemon) {
+			if (!this.runEvent('TryHeal', pokemon)) return false;
+		},
 		onEat: function (pokemon) {
 			this.heal(10);
 		},
@@ -3117,7 +3162,7 @@ exports.BattleItems = {
 		},
 		num: 180,
 		gen: 3,
-		desc: "No competitive use."
+		desc: "Cannot be eaten by the holder. No effect when eaten with Bug Bite or Pluck."
 	},
 	"parkball": {
 		id: "parkball",
@@ -3137,7 +3182,7 @@ exports.BattleItems = {
 			type: "Water"
 		},
 		onSourceModifyDamage: function (damage, source, target, move) {
-			if (move.type === 'Water' && target.runEffectiveness(move) > 0 && !target.volatiles['substitute']) {
+			if (move.type === 'Water' && move.typeMod > 0 && !target.volatiles['substitute']) {
 				if (target.eatItem()) {
 					this.debug('-50% reduction');
 					return this.chainModify(0.5);
@@ -3159,7 +3204,7 @@ exports.BattleItems = {
 			type: "Psychic"
 		},
 		onSourceModifyDamage: function (damage, source, target, move) {
-			if (move.type === 'Psychic' && target.runEffectiveness(move) > 0 && !target.volatiles['substitute']) {
+			if (move.type === 'Psychic' && move.typeMod > 0 && !target.volatiles['substitute']) {
 				if (target.eatItem()) {
 					this.debug('-50% reduction');
 					return this.chainModify(0.5);
@@ -3261,7 +3306,7 @@ exports.BattleItems = {
 		},
 		num: 168,
 		gen: 3,
-		desc: "No competitive use."
+		desc: "Cannot be eaten by the holder. No effect when eaten with Bug Bite or Pluck."
 	},
 	"pinsirite": {
 		id: "pinsirite",
@@ -3285,7 +3330,7 @@ exports.BattleItems = {
 		onBasePowerPriority: 6,
 		onBasePower: function (basePower, user, target, move) {
 			if (move && move.type === 'Fairy') {
-				return this.chainModify(1.2);
+				return this.chainModify([0x1333, 0x1000]);
 			}
 		},
 		onTakeItem: function (item, pokemon, source) {
@@ -3294,6 +3339,7 @@ exports.BattleItems = {
 			}
 			return true;
 		},
+		forcedForme: "Arceus-Fairy",
 		num: -6,
 		gen: 6,
 		desc: "Holder's Fairy-type attacks have 1.2x power. Judgment is Fairy type."
@@ -3320,7 +3366,7 @@ exports.BattleItems = {
 		onBasePowerPriority: 6,
 		onBasePower: function (basePower, user, target, move) {
 			if (move.type === 'Poison') {
-				return this.chainModify(1.2);
+				return this.chainModify([0x1333, 0x1000]);
 			}
 		},
 		num: 245,
@@ -3360,12 +3406,12 @@ exports.BattleItems = {
 		spritenum: 351,
 		isBerry: true,
 		naturalGift: {
-			basePower: 80,
+			basePower: 90,
 			type: "Ice"
 		},
 		num: 169,
 		gen: 3,
-		desc: "No competitive use."
+		desc: "Cannot be eaten by the holder. No effect when eaten with Bug Bite or Pluck."
 	},
 	"powerherb": {
 		id: "powerherb",
@@ -3417,12 +3463,12 @@ exports.BattleItems = {
 		spritenum: 371,
 		isBerry: true,
 		naturalGift: {
-			basePower: 80,
+			basePower: 90,
 			type: "Poison"
 		},
 		num: 171,
 		gen: 3,
-		desc: "No competitive use."
+		desc: "Cannot be eaten by the holder. No effect when eaten with Bug Bite or Pluck."
 	},
 	"quickball": {
 		id: "quickball",
@@ -3456,9 +3502,9 @@ exports.BattleItems = {
 		fling: {
 			basePower: 10
 		},
-		onModifySpe: function (speMod, pokemon) {
-			if (pokemon.template.species === 'Ditto') {
-				return this.chain(speMod, 2);
+		onModifySpe: function (spe, pokemon) {
+			if (pokemon.template.species === 'Ditto' && !pokemon.transformed) {
+				return this.chainModify(2);
 			}
 		},
 		num: 274,
@@ -3476,7 +3522,7 @@ exports.BattleItems = {
 		},
 		num: 177,
 		gen: 3,
-		desc: "No competitive use."
+		desc: "Cannot be eaten by the holder. No effect when eaten with Bug Bite or Pluck."
 	},
 	"rarebone": {
 		id: "rarebone",
@@ -3487,7 +3533,7 @@ exports.BattleItems = {
 		},
 		num: 106,
 		gen: 4,
-		desc: "No competitive use."
+		desc: "No competitive use other than when used with Fling."
 	},
 	"rawstberry": {
 		id: "rawstberry",
@@ -3534,6 +3580,7 @@ exports.BattleItems = {
 			basePower: 30,
 			volatileStatus: 'flinch'
 		},
+		onModifyMovePriority: -1,
 		onModifyMove: function (move) {
 			if (move.category !== "Status") {
 				if (!move.secondaries) move.secondaries = [];
@@ -3561,7 +3608,7 @@ exports.BattleItems = {
 		},
 		num: 164,
 		gen: 3,
-		desc: "No competitive use."
+		desc: "Cannot be eaten by the holder. No effect when eaten with Bug Bite or Pluck."
 	},
 	"redcard": {
 		id: "redcard",
@@ -3627,7 +3674,7 @@ exports.BattleItems = {
 			type: "Grass"
 		},
 		onSourceModifyDamage: function (damage, source, target, move) {
-			if (move.type === 'Grass' && target.runEffectiveness(move) > 0 && !target.volatiles['substitute']) {
+			if (move.type === 'Grass' && move.typeMod > 0 && !target.volatiles['substitute']) {
 				if (target.eatItem()) {
 					this.debug('-50% reduction');
 					return this.chainModify(0.5);
@@ -3646,8 +3693,8 @@ exports.BattleItems = {
 		fling: {
 			basePower: 10
 		},
-		onModifyPokemon: function (pokemon) {
-			pokemon.negateImmunity['Type'] = true;
+		onNegateImmunity: function (pokemon, type) {
+			if (type in this.data.TypeChart && this.runEvent('Immunity', pokemon, null, null, type)) return false;
 		},
 		num: 543,
 		gen: 5,
@@ -3682,7 +3729,7 @@ exports.BattleItems = {
 		onBasePowerPriority: 6,
 		onBasePower: function (basePower, user, target, move) {
 			if (move.type === 'Rock') {
-				return this.chainModify(1.2);
+				return this.chainModify([0x1333, 0x1000]);
 			}
 		},
 		num: 315,
@@ -3698,7 +3745,7 @@ exports.BattleItems = {
 		},
 		onAfterDamageOrder: 2,
 		onAfterDamage: function (damage, target, source, move) {
-			if (source && source !== target && move && move.isContact) {
+			if (source && source !== target && move && move.flags['contact']) {
 				this.damage(source.maxhp / 6, source, target, null, true);
 			}
 		},
@@ -3727,7 +3774,7 @@ exports.BattleItems = {
 		onBasePowerPriority: 6,
 		onBasePower: function (basePower, user, target, move) {
 			if (move.type === 'Grass') {
-				return this.chainModify(1.2);
+				return this.chainModify([0x1333, 0x1000]);
 			}
 		},
 		num: 318,
@@ -3744,7 +3791,7 @@ exports.BattleItems = {
 			type: "Fairy"
 		},
 		onSourceModifyDamage: function (damage, source, target, move) {
-			if (move.type === 'Fairy' && target.runEffectiveness(move) > 0 && !target.volatiles['substitute']) {
+			if (move.type === 'Fairy' && move.typeMod > 0 && !target.volatiles['substitute']) {
 				if (target.eatItem()) {
 					this.debug('-50% reduction');
 					return this.chainModify(0.5);
@@ -3810,7 +3857,7 @@ exports.BattleItems = {
 			if (type === 'sandstorm' || type === 'hail' || type === 'powder') return false;
 		},
 		onTryHit: function (pokemon, source, move) {
-			if (move.flags['powder']) {
+			if (move.flags['powder'] && move.id !== 'ragepowder') {
 				this.add('-activate', pokemon, 'Safety Goggles', move.name);
 				return null;
 			}
@@ -3906,7 +3953,7 @@ exports.BattleItems = {
 		onBasePowerPriority: 6,
 		onBasePower: function (basePower, user, target, move) {
 			if (move && move.type === 'Water') {
-				return this.chainModify(1.2);
+				return this.chainModify([0x1333, 0x1000]);
 			}
 		},
 		num: 254,
@@ -3923,7 +3970,7 @@ exports.BattleItems = {
 		onBasePowerPriority: 6,
 		onBasePower: function (basePower, user, target, move) {
 			if (move && move.type === 'Flying') {
-				return this.chainModify(1.2);
+				return this.chainModify([0x1333, 0x1000]);
 			}
 		},
 		num: 244,
@@ -3968,7 +4015,7 @@ exports.BattleItems = {
 		},
 		onAfterMoveSecondarySelfPriority: -1,
 		onAfterMoveSecondarySelf: function (pokemon, target, move) {
-			if (move.category !== 'Status' && pokemon.lastDamage > 0) {
+			if (move.category !== 'Status') {
 				this.heal(pokemon.lastDamage / 8, pokemon);
 			}
 		},
@@ -3987,6 +4034,7 @@ exports.BattleItems = {
 			return true;
 		},
 		onDrive: 'Electric',
+		forcedForme: "Genesect-Shock",
 		num: 117,
 		gen: 5,
 		desc: "Holder's Techno Blast is Electric type."
@@ -4001,7 +4049,7 @@ exports.BattleItems = {
 			type: "Ground"
 		},
 		onSourceModifyDamage: function (damage, source, target, move) {
-			if (move.type === 'Ground' && target.runEffectiveness(move) > 0 && !target.volatiles['substitute']) {
+			if (move.type === 'Ground' && move.typeMod > 0 && !target.volatiles['substitute']) {
 				if (target.eatItem()) {
 					this.debug('-50% reduction');
 					return this.chainModify(0.5);
@@ -4023,7 +4071,7 @@ exports.BattleItems = {
 		onBasePowerPriority: 6,
 		onBasePower: function (basePower, user, target, move) {
 			if (move.type === 'Normal') {
-				return this.chainModify(1.2);
+				return this.chainModify([0x1333, 0x1000]);
 			}
 		},
 		num: 251,
@@ -4040,7 +4088,7 @@ exports.BattleItems = {
 		onBasePowerPriority: 6,
 		onBasePower: function (basePower, user, target, move) {
 			if (move.type === 'Bug') {
-				return this.chainModify(1.2);
+				return this.chainModify([0x1333, 0x1000]);
 			}
 		},
 		num: 222,
@@ -4060,6 +4108,9 @@ exports.BattleItems = {
 			if (pokemon.hp <= pokemon.maxhp / 2) {
 				pokemon.eatItem();
 			}
+		},
+		onEatItem: function (item, pokemon) {
+			if (!this.runEvent('TryHeal', pokemon)) return false;
 		},
 		onEat: function (pokemon) {
 			this.heal(pokemon.maxhp / 4);
@@ -4087,7 +4138,7 @@ exports.BattleItems = {
 		onBasePowerPriority: 6,
 		onBasePower: function (basePower, user, target, move) {
 			if (move.type === 'Flying') {
-				return this.chainModify(1.2);
+				return this.chainModify([0x1333, 0x1000]);
 			}
 		},
 		onTakeItem: function (item, pokemon, source) {
@@ -4096,6 +4147,7 @@ exports.BattleItems = {
 			}
 			return true;
 		},
+		forcedForme: "Arceus-Flying",
 		num: 306,
 		gen: 4,
 		desc: "Holder's Flying-type attacks have 1.2x power. Judgment is Flying type."
@@ -4151,7 +4203,7 @@ exports.BattleItems = {
 		onBasePowerPriority: 6,
 		onBasePower: function (basePower, user, target, move) {
 			if (move.type === 'Ground') {
-				return this.chainModify(1.2);
+				return this.chainModify([0x1333, 0x1000]);
 			}
 		},
 		num: 237,
@@ -4191,7 +4243,7 @@ exports.BattleItems = {
 		onBasePowerPriority: 6,
 		onBasePower: function (basePower, user, target, move) {
 			if (move.type === 'Ghost') {
-				return this.chainModify(1.2);
+				return this.chainModify([0x1333, 0x1000]);
 			}
 		},
 		num: 247,
@@ -4209,7 +4261,7 @@ exports.BattleItems = {
 		},
 		num: 179,
 		gen: 3,
-		desc: "No competitive use."
+		desc: "Cannot be eaten by the holder. No effect when eaten with Bug Bite or Pluck."
 	},
 	"splashplate": {
 		id: "splashplate",
@@ -4219,7 +4271,7 @@ exports.BattleItems = {
 		onBasePowerPriority: 6,
 		onBasePower: function (basePower, user, target, move) {
 			if (move.type === 'Water') {
-				return this.chainModify(1.2);
+				return this.chainModify([0x1333, 0x1000]);
 			}
 		},
 		onTakeItem: function (item, pokemon, source) {
@@ -4228,6 +4280,7 @@ exports.BattleItems = {
 			}
 			return true;
 		},
+		forcedForme: "Arceus-Water",
 		num: 299,
 		gen: 4,
 		desc: "Holder's Water-type attacks have 1.2x power. Judgment is Water type."
@@ -4240,7 +4293,7 @@ exports.BattleItems = {
 		onBasePowerPriority: 6,
 		onBasePower: function (basePower, user, target, move) {
 			if (move.type === 'Ghost') {
-				return this.chainModify(1.2);
+				return this.chainModify([0x1333, 0x1000]);
 			}
 		},
 		onTakeItem: function (item, pokemon, source) {
@@ -4249,6 +4302,7 @@ exports.BattleItems = {
 			}
 			return true;
 		},
+		forcedForme: "Arceus-Ghost",
 		num: 310,
 		gen: 4,
 		desc: "Holder's Ghost-type attacks have 1.2x power. Judgment is Ghost type."
@@ -4277,15 +4331,15 @@ exports.BattleItems = {
 		},
 		onEat: function (pokemon) {
 			var stats = [];
-			for (var i in pokemon.boosts) {
-				if (i !== 'accuracy' && i !== 'evasion' && pokemon.boosts[i] < 6) {
-					stats.push(i);
+			for (var stat in pokemon.boosts) {
+				if (stat !== 'accuracy' && stat !== 'evasion' && pokemon.boosts[stat] < 6) {
+					stats.push(stat);
 				}
 			}
 			if (stats.length) {
-				var i = stats[this.random(stats.length)];
+				var randomStat = stats[this.random(stats.length)];
 				var boost = {};
-				boost[i] = 2;
+				boost[randomStat] = 2;
 				this.boost(boost);
 			}
 		},
@@ -4355,7 +4409,7 @@ exports.BattleItems = {
 			this.damage(pokemon.maxhp / 8);
 		},
 		onHit: function (target, source, move) {
-			if (source && source !== target && !source.item && move && move.isContact) {
+			if (source && source !== target && !source.item && move && move.flags['contact']) {
 				var barb = target.takeItem();
 				source.setItem(barb);
 				// no message for Sticky Barb changing hands
@@ -4373,7 +4427,7 @@ exports.BattleItems = {
 		onBasePowerPriority: 6,
 		onBasePower: function (basePower, user, target, move) {
 			if (move.type === 'Rock') {
-				return this.chainModify(1.2);
+				return this.chainModify([0x1333, 0x1000]);
 			}
 		},
 		onTakeItem: function (item, pokemon, source) {
@@ -4382,6 +4436,7 @@ exports.BattleItems = {
 			}
 			return true;
 		},
+		forcedForme: "Arceus-Rock",
 		num: 309,
 		gen: 4,
 		desc: "Holder's Rock-type attacks have 1.2x power. Judgment is Rock type."
@@ -4411,7 +4466,7 @@ exports.BattleItems = {
 		},
 		num: 174,
 		gen: 3,
-		desc: "No competitive use."
+		desc: "Cannot be eaten by the holder. No effect when eaten with Bug Bite or Pluck."
 	},
 	"tangaberry": {
 		id: "tangaberry",
@@ -4423,7 +4478,7 @@ exports.BattleItems = {
 			type: "Bug"
 		},
 		onSourceModifyDamage: function (damage, source, target, move) {
-			if (move.type === 'Bug' && target.runEffectiveness(move) > 0 && !target.volatiles['substitute']) {
+			if (move.type === 'Bug' && move.typeMod > 0 && !target.volatiles['substitute']) {
 				if (target.eatItem()) {
 					this.debug('-50% reduction');
 					return this.chainModify(0.5);
@@ -4485,7 +4540,7 @@ exports.BattleItems = {
 		onBasePowerPriority: 6,
 		onBasePower: function (basePower, user, target, move) {
 			if (move.type === 'Poison') {
-				return this.chainModify(1.2);
+				return this.chainModify([0x1333, 0x1000]);
 			}
 		},
 		onTakeItem: function (item, pokemon, source) {
@@ -4494,6 +4549,7 @@ exports.BattleItems = {
 			}
 			return true;
 		},
+		forcedForme: "Arceus-Poison",
 		num: 304,
 		gen: 4,
 		desc: "Holder's Poison-type attacks have 1.2x power. Judgment is Poison type."
@@ -4508,7 +4564,7 @@ exports.BattleItems = {
 		onBasePowerPriority: 6,
 		onBasePower: function (basePower, user, target, move) {
 			if (move.type === 'Psychic') {
-				return this.chainModify(1.2);
+				return this.chainModify([0x1333, 0x1000]);
 			}
 		},
 		num: 248,
@@ -4561,7 +4617,7 @@ exports.BattleItems = {
 			type: "Electric"
 		},
 		onSourceModifyDamage: function (damage, source, target, move) {
-			if (move.type === 'Electric' && target.runEffectiveness(move) > 0 && !target.volatiles['substitute']) {
+			if (move.type === 'Electric' && move.typeMod > 0 && !target.volatiles['substitute']) {
 				if (target.eatItem()) {
 					this.debug('-50% reduction');
 					return this.chainModify(0.5);
@@ -4580,7 +4636,7 @@ exports.BattleItems = {
 		spritenum: 528,
 		isGem: true,
 		onSourceTryPrimaryHit: function (target, source, move) {
-			if (target === source || move.category === 'Status') return;
+			if (target === source || move.category === 'Status' || move.id in {firepledge:1, grasspledge:1, waterpledge:1}) return;
 			if (move.type === 'Water') {
 				if (source.useItem()) {
 					this.add('-enditem', source, 'Water Gem', '[from] gem', '[move] ' + move.name);
@@ -4603,7 +4659,7 @@ exports.BattleItems = {
 		},
 		num: 181,
 		gen: 3,
-		desc: "No competitive use."
+		desc: "Cannot be eaten by the holder. No effect when eaten with Bug Bite or Pluck."
 	},
 	"waveincense": {
 		id: "waveincense",
@@ -4615,7 +4671,7 @@ exports.BattleItems = {
 		onBasePowerPriority: 6,
 		onBasePower: function (basePower, user, target, move) {
 			if (move.type === 'Water') {
-				return this.chainModify(1.2);
+				return this.chainModify([0x1333, 0x1000]);
 			}
 		},
 		num: 317,
@@ -4630,7 +4686,7 @@ exports.BattleItems = {
 			basePower: 80
 		},
 		onHit: function (target, source, move) {
-			if (target.hp && move.category !== 'Status' && !move.damage && !move.damageCallback && target.runEffectiveness(move) > 0 && target.useItem()) {
+			if (target.hp && move.category !== 'Status' && !move.damage && !move.damageCallback && move.typeMod > 0 && target.useItem()) {
 				this.boost({atk: 2, spa: 2});
 			}
 		},
@@ -4649,7 +4705,7 @@ exports.BattleItems = {
 		},
 		num: 167,
 		gen: 3,
-		desc: "No competitive use."
+		desc: "Cannot be eaten by the holder. No effect when eaten with Bug Bite or Pluck."
 	},
 	"whiteherb": {
 		id: "whiteherb",
@@ -4696,9 +4752,9 @@ exports.BattleItems = {
 		fling: {
 			basePower: 10
 		},
-		onModifyMove: function (move) {
-			if (typeof move.accuracy === 'number') {
-				move.accuracy *= 1.1;
+		onSourceModifyAccuracy: function (accuracy) {
+			if (typeof accuracy === 'number') {
+				return accuracy * 1.1;
 			}
 		},
 		num: 265,
@@ -4718,6 +4774,9 @@ exports.BattleItems = {
 			if (pokemon.hp <= pokemon.maxhp / 2) {
 				pokemon.eatItem();
 			}
+		},
+		onEatItem: function (item, pokemon) {
+			if (!this.runEvent('TryHeal', pokemon)) return false;
 		},
 		onEat: function (pokemon) {
 			this.heal(pokemon.maxhp / 8);
@@ -4739,7 +4798,7 @@ exports.BattleItems = {
 		onBasePowerPriority: 6,
 		onBasePower: function (basePower, user, target, move) {
 			if (move.category === 'Special') {
-				return this.chainModify(1.1);
+				return this.chainModify([0x1199, 0x1000]);
 			}
 		},
 		num: 267,
@@ -4756,7 +4815,7 @@ exports.BattleItems = {
 			type: "Ice"
 		},
 		onSourceModifyDamage: function (damage, source, target, move) {
-			if (move.type === 'Ice' && target.runEffectiveness(move) > 0 && !target.volatiles['substitute']) {
+			if (move.type === 'Ice' && move.typeMod > 0 && !target.volatiles['substitute']) {
 				if (target.eatItem()) {
 					this.debug('-50% reduction');
 					return this.chainModify(0.5);
@@ -4776,7 +4835,7 @@ exports.BattleItems = {
 		onBasePowerPriority: 6,
 		onBasePower: function (basePower, user, target, move) {
 			if (move.type === 'Electric') {
-				return this.chainModify(1.2);
+				return this.chainModify([0x1333, 0x1000]);
 			}
 		},
 		onTakeItem: function (item, pokemon, source) {
@@ -4785,6 +4844,7 @@ exports.BattleItems = {
 			}
 			return true;
 		},
+		forcedForme: "Arceus-Electric",
 		num: 300,
 		gen: 4,
 		desc: "Holder's Electric-type attacks have 1.2x power. Judgment is Electric type."
@@ -4796,14 +4856,14 @@ exports.BattleItems = {
 		fling: {
 			basePower: 10
 		},
-		onModifyMove: function (move, user, target) {
-			if (typeof move.accuracy === 'number' && !this.willMove(target)) {
+		onSourceModifyAccuracy: function (accuracy, target) {
+			if (typeof accuracy === 'number' && !this.willMove(target)) {
 				this.debug('Zoom Lens boosting accuracy');
-				move.accuracy *= 1.2;
+				return accuracy * 1.2;
 			}
 		},
 		num: 276,
 		gen: 4,
-		desc: "The accuracy of attacks by the holder is 1.2x if it is the last to move in a turn."
+		desc: "The accuracy of attacks by the holder is 1.2x if it moves after its target."
 	}
 };

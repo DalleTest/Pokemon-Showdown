@@ -1,3 +1,5 @@
+'use strict';
+
 const MAX_CATEGORY_COUNT = 5;
 const MAX_QUESTION_COUNT = 5;
 const BASE_POINTS = 200;
@@ -6,9 +8,9 @@ function calculatePoints(category, question) {
 	return BASE_POINTS * (question + 1);
 }
 
-var jeopardies = {};
+let jeopardies = {};
 
-var JeopardyQuestions = (function () {
+let JeopardyQuestions = (function () {
 	function JeopardyQuestions(room, categoryCount, questionCount) {
 		this.room = room;
 		this.categoryCount = categoryCount;
@@ -20,10 +22,10 @@ var JeopardyQuestions = (function () {
 		this.grid = this.readPersistentData('grid');
 		this.revealedGrid = {};
 		if (!this.grid) this.grid = {};
-		for (var c = 0; c < categoryCount; ++c) {
+		for (let c = 0; c < categoryCount; ++c) {
 			if (!this.grid[c]) this.grid[c] = {};
 			this.revealedGrid[c] = {};
-			for (var q = 0; q < questionCount; ++q) {
+			for (let q = 0; q < questionCount; ++q) {
 				if (!this.grid[c][q]) this.grid[c][q] = {};
 				this.revealedGrid[c][q] = false;
 			}
@@ -48,19 +50,18 @@ var JeopardyQuestions = (function () {
 	};
 
 	JeopardyQuestions.prototype.export = function (category, start, end) {
-		var data = [];
-		for (var q = start; q < end; ++q)
+		let data = [];
+		for (let q = start; q < end; ++q) {
 			data.push(this.grid[category][q]);
+		}
 		return data;
 	};
 	JeopardyQuestions.prototype.import = function (category, start, end, data) {
-		var q1 = start;
-		var q2 = 0;
+		let q1 = start;
+		let q2 = 0;
 		for (; q1 < end && typeof data[q2] === 'object'; ++q1, ++q2) {
-			if (typeof data[q2].value === 'string')
-				this.grid[category][q1].value = data[q2].value;
-			if (typeof data[q2].answer === 'string')
-				this.grid[category][q1].answer = data[q2].answer;
+			if (typeof data[q2].value === 'string') this.grid[category][q1].value = data[q2].value;
+			if (typeof data[q2].answer === 'string') this.grid[category][q1].answer = data[q2].answer;
 			this.grid[category][q1].isDailyDouble = !!data[q2].isDailyDouble;
 		}
 		return q1 - start;
@@ -103,7 +104,7 @@ var JeopardyQuestions = (function () {
 	return JeopardyQuestions;
 })();
 
-var Jeopardy = (function () {
+let Jeopardy = (function () {
 	function Jeopardy(host, room, categoryCount, questionCount) {
 		this.host = host;
 		this.room = room;
@@ -129,35 +130,34 @@ var Jeopardy = (function () {
 	}
 
 	Jeopardy.prototype.checkPermission = function (user, output) {
-		var checks = Array.prototype.slice.call(arguments, 2);
+		let checks = Array.prototype.slice.call(arguments, 2);
 
-		var currentCheck = '';
+		let currentCheck = '';
 		while (!!(currentCheck = checks.pop())) {
 			switch (currentCheck) {
-				case 'started':
-					if (this.isStarted) break;
-					output.sendReply("The Jeopardy match has not started yet.");
-					return false;
+			case 'started':
+				if (this.isStarted) break;
+				output.sendReply("The Jeopardy match has not started yet.");
+				return false;
 
-				case 'notstarted':
-					if (!this.isStarted) break;
-					output.sendReply("The Jeopardy match has already started.");
-					return false;
+			case 'notstarted':
+				if (!this.isStarted) break;
+				output.sendReply("The Jeopardy match has already started.");
+				return false;
 
-				case 'host':
-					if (user === this.host) break;
-					output.sendReply("You are not the host.");
-					return false;
+			case 'host':
+				if (user === this.host) break;
+				output.sendReply("You are not the host.");
+				return false;
 
-				case 'user':
-					if (this.users.has(user)) break;
-					output.sendReply("You are not in the match.");
-					return false;
+			case 'user':
+				if (this.users.has(user)) break;
+				output.sendReply("You are not in the match.");
+				return false;
 
-				default:
-					output.sendReply("Unknown check '" + currentCheck + "'.");
-					return false;
-
+			default:
+				output.sendReply("Unknown check '" + currentCheck + "'.");
+				return false;
 			}
 		}
 
@@ -188,14 +188,14 @@ var Jeopardy = (function () {
 		if (!this.checkPermission(user, output, 'notstarted', 'host')) return;
 		if (this.users.size < 2) return output.sendReply("There are not enough users participating.");
 
-		var isGridValid = true;
-		for (var c = 0; c < this.categoryCount; ++c) {
+		let isGridValid = true;
+		for (let c = 0; c < this.categoryCount; ++c) {
 			if (!this.questions.getCategory(c)) {
 				output.sendReply("Category " + (c + 1) + " is missing its name.");
 				isGridValid = false;
 			}
-			for (var q = 0; q < this.questionCount; ++q) {
-				var question = this.questions.getQuestion(c, q);
+			for (let q = 0; q < this.questionCount; ++q) {
+				let question = this.questions.getQuestion(c, q);
 				if (!question.value) {
 					output.sendReply("Category " + (c + 1) + " Question " + (q + 1) + " is empty.");
 					isGridValid = false;
@@ -211,7 +211,7 @@ var Jeopardy = (function () {
 			output.sendReply("The final category is missing its name.");
 			isGridValid = false;
 		}
-		var finalQuestion = this.questions.getQuestion('final', 0);
+		let finalQuestion = this.questions.getQuestion('final', 0);
 		if (!finalQuestion.value) {
 			output.sendReply("The final question is empty.");
 			isGridValid = false;
@@ -224,8 +224,8 @@ var Jeopardy = (function () {
 		if (!isGridValid) return;
 
 		this.isStarted = true;
-		var usersIterator = this.users.keys();
-		for (var n = 0, u = Math.floor(Math.random() * this.users.size); n <= u; ++n) {
+		let usersIterator = this.users.keys();
+		for (let n = 0, u = Math.floor(Math.random() * this.users.size); n <= u; ++n) {
 			this.currentUser = usersIterator.next().value;
 		}
 		this.room.add('|raw|<div class="infobox">' + renderGrid(this.questions) + '</div>');
@@ -237,7 +237,7 @@ var Jeopardy = (function () {
 		if (user !== this.currentUser || this.currentCategory !== -1) return output.sendReply("You cannot select a question right now.");
 		if (!(0 <= category && category < this.categoryCount && 0 <= question && question < this.questionCount)) return output.sendReply("Invalid question.");
 
-		var data = this.questions.getQuestion(category, question);
+		let data = this.questions.getQuestion(category, question);
 		if (data.isRevealed) return output.sendReply("That question has already been revealed.");
 
 		this.questions.setRevealed(category, question, true);
@@ -267,14 +267,14 @@ var Jeopardy = (function () {
 		if (!this.isDailyDouble || user !== this.currentUser) return output.sendReply("You cannot wager right now.");
 		if (this.currentAnswerer) return output.sendReply("You have already wagered.");
 
-		var userData = this.users.get(this.currentUser);
+		let userData = this.users.get(this.currentUser);
 		if (amount === 'all') amount = userData.points;
 		if (!(0 <= amount && amount <= (userData.points < 1000 ? 1000 : userData.points))) return output.sendReply("You cannot wager less than zero or more than your current amount of points.");
 		userData.wager = Math.round(amount);
 		this.room.add("" + this.currentUser.name + " has wagered " + userData.wager + " points.");
 
 		this.currentAnswerer = this.currentUser;
-		var data = this.questions.getQuestion(this.currentCategory, this.currentQuestion);
+		let data = this.questions.getQuestion(this.currentCategory, this.currentQuestion);
 		this.room.add("The question is: " + data.value);
 	};
 	Jeopardy.prototype.answer = function (user, answer, output) {
@@ -299,8 +299,8 @@ var Jeopardy = (function () {
 		if (this.currentQuestion === 'final') return this.finalMark(user, isCorrect, output);
 		if (!this.currentAnswer) return output.sendReply("There is no answer to mark right now.");
 
-		var userData = this.users.get(this.currentAnswerer);
-		var points = this.isDailyDouble ? userData.wager : this.questions.getQuestion(this.currentCategory, this.currentQuestion).points;
+		let userData = this.users.get(this.currentAnswerer);
+		let points = this.isDailyDouble ? userData.wager : this.questions.getQuestion(this.currentCategory, this.currentQuestion).points;
 		if (isCorrect) {
 			userData.points += points;
 			this.room.add("The answer '" + this.currentAnswer + "' was correct! " + this.currentAnswerer.name + " gains " + points + " points to " + userData.points + "!");
@@ -329,11 +329,11 @@ var Jeopardy = (function () {
 		if (isNaN(this.currentCategory) || this.currentCategory < 0) return output.sendReply("There is not question to skip.");
 		if (this.currentAnswer) return output.sendReply("Please mark the current answer.");
 
-		var answer = this.questions.getQuestion(this.currentCategory, this.currentQuestion).answer;
+		let answer = this.questions.getQuestion(this.currentCategory, this.currentQuestion).answer;
 		this.room.add("The correct answer was '" + answer + "'.");
 
 		if (this.isDailyDouble) {
-			var userData = this.users.get(this.currentUser);
+			let userData = this.users.get(this.currentUser);
 			userData.points -= userData.wager;
 			this.room.add("" + this.currentUser.name + " loses " + userData.wager + " points to " + userData.points + "!");
 			this.isDailyDouble = false;
@@ -360,11 +360,11 @@ var Jeopardy = (function () {
 		if (this.currentCategory !== 'final') return output.sendReply("It is not the final round yet.");
 		if (this.remainingFinalWagers === 0) return output.sendReply("You cannot modify your wager after the question has been revealed.");
 
-		var userData = this.users.get(user);
+		let userData = this.users.get(user);
 		if (amount === 'all') amount = userData.points;
 		if (!(0 <= amount && amount <= (userData.points < 1000 ? 1000 : userData.points))) return output.sendReply("You cannot wager less than zero or more than your current amount of points.");
 
-		var isAlreadyWagered = userData.finalWager >= 0;
+		let isAlreadyWagered = userData.finalWager >= 0;
 		userData.finalWager = Math.round(amount);
 
 		output.sendReply("You have wagered " + userData.finalWager + " points.");
@@ -388,8 +388,8 @@ var Jeopardy = (function () {
 		if (!answer) return output.sendReply("Please specify an answer.");
 		if (this.remainingFinalAnswers === 0) return output.sendReply("You cannot modify your answer after marking has started.");
 
-		var userData = this.users.get(user);
-		var isAlreadyAnswered = !!userData.finalAnswer;
+		let userData = this.users.get(user);
+		let isAlreadyAnswered = !!userData.finalAnswer;
 		userData.finalAnswer = answer;
 
 		output.sendReply("You have answered '" + userData.finalAnswer + "'.");
@@ -403,7 +403,7 @@ var Jeopardy = (function () {
 	Jeopardy.prototype.automarkFinalAnswers = function () {
 		if (!this.finalMarkingIterator) this.finalMarkingIterator = this.users.entries();
 
-		var data = this.finalMarkingData = this.finalMarkingIterator.next().value;
+		let data = this.finalMarkingData = this.finalMarkingIterator.next().value;
 		if (!data) {
 			this.end();
 			return;
@@ -419,7 +419,7 @@ var Jeopardy = (function () {
 		if (!this.checkPermission(user, output, 'started', 'host')) return;
 		if (!this.finalMarkingIterator) return output.sendReply("There is no final answer to mark right now.");
 
-		var data = this.finalMarkingData;
+		let data = this.finalMarkingData;
 		if (isCorrect) {
 			data[1].points += data[1].finalWager;
 			this.room.add("The answer '" + data[1].finalAnswer + "' was correct! " + data[0].name + " gains " + data[1].finalWager + " points to " + data[1].points + "!");
@@ -432,15 +432,15 @@ var Jeopardy = (function () {
 	};
 
 	Jeopardy.prototype.end = function () {
-		var results = [];
-		for (var data, usersIterator = this.users.entries(); !!(data = usersIterator.next().value);) { // Replace with for-of loop when available
+		let results = [];
+		for (let data, usersIterator = this.users.entries(); !!(data = usersIterator.next().value);) { // Replace with for-of loop when available
 			results.push({user: data[0], points: data[1].points});
 		}
 		results.sort(function (a, b) {
 			return b.points - a.points;
 		});
 
-		var winner = results.shift();
+		let winner = results.shift();
 		this.room.add("Congratulations to " + winner.user.name + " for winning the Jeopardy match with " + winner.points + " points!");
 		this.room.add("Other participants:\n" + results.map(function (data) { return data.user.name + ": " + data.points; }).join("\n"));
 
@@ -451,20 +451,20 @@ var Jeopardy = (function () {
 })();
 
 function renderGrid(questions, mode) {
-	var buffer = '<center><table>';
+	let buffer = '<center><table>';
 
 	buffer += '<tr>';
-	for (var c = 0; c < questions.categoryCount; ++c) {
+	for (let c = 0; c < questions.categoryCount; ++c) {
 		buffer += '<th>' + (Tools.escapeHTML(questions.getCategory(c)) || '&nbsp;') + '</th>';
 	}
 	buffer += '</tr>';
 
-	for (var q = 0; q < questions.questionCount; ++q) {
+	for (let q = 0; q < questions.questionCount; ++q) {
 		buffer += '<tr>';
-		for (var c = 0; c < questions.categoryCount; ++c) {
-			var data = questions.getQuestion(c, q);
+		for (let c = 0; c < questions.categoryCount; ++c) {
+			let data = questions.getQuestion(c, q);
 
-			var cellType = (mode === 'questions' || mode === 'answers') && data.isDailyDouble ? 'th' : 'td';
+			let cellType = (mode === 'questions' || mode === 'answers') && data.isDailyDouble ? 'th' : 'td';
 			buffer += '<' + cellType + '><center>';
 
 			if (mode === 'questions') {
@@ -487,7 +487,7 @@ function renderGrid(questions, mode) {
 	return buffer;
 }
 
-var commands = {
+let commands = {
 	help: function () {
 		if (!this.canBroadcast()) return;
 
@@ -495,16 +495,16 @@ var commands = {
 			"All commands are run under /jeopardy or /jp. For example, /jeopardy viewgrid.<br />" +
 			"viewgrid { , questions, answers, final} - Shows the jeopardy grid<br />" +
 			"edit - Edits the grid. Run this command by itself for more detailed help<br />" +
-			"export [category number], [start], [end] - Exports data from the grid. start and end are optional.<br />" +
-			"import [category number], [start], [end], [data] - Imports data into the grid. start and end are optional.<br />" +
-			"create [categories], [questions per category] - Creates a jeopardy match. Parameters are optional, and default to maximum values<br />" +
-			"start - Starts the match<br />" +
-			"end - Forcibly ends the match<br />" +
+			"export [category number], [start], [end] - Exports data from the grid. start and end are optional<br />" +
+			"import [category number], [start], [end], [data] - Imports data into the grid. start and end are optional<br />" +
+			"create [categories], [questions per category] - Creates a jeopardy match. Parameters are optional, and default to maximum values. Requires: % @ # & ~<br />" +
+			"start - Starts the match. Requires: % @ # & ~<br />" +
+			"end - Forcibly ends the match. Requires: % @ # & ~<br />" +
 			"adduser [user] - Add a user to the match<br />" +
 			"removeuser [user] - Remove a user from the match<br />" +
 			"select [category number], [question number] - Select a question<br />" +
 			"a/answer [answer] - Attempt to answer the question<br />" +
-			"incorrect/correct - Marks the current answer as correct or not<br />" +
+			"incorrect/correct - Marks the current answer as correct or not. Requires: % @ # & ~<br />" +
 			"skip - Skips the current question<br />" +
 			"wager [amount] - Wager some amount of points. 'all' is also accepted"
 		);
@@ -514,8 +514,8 @@ var commands = {
 	viewgrid: function (target, room, user) {
 		if (!this.canBroadcast()) return;
 
-		var jeopardy = jeopardies[room.id];
-		var questions = null;
+		let jeopardy = jeopardies[room.id];
+		let questions = null;
 
 		if (!jeopardy) {
 			if (!this.can('jeopardy', null, room)) return;
@@ -537,16 +537,16 @@ var commands = {
 	},
 
 	edit: function (target, room, user) {
-		var params = target.split(',');
+		let params = target.split(',');
 
-		var usage =
+		let usage =
 			"Usage:\n" +
 			"edit category, [category number], [value]\n" +
 			"edit {question,answer}, [category number], [question number], [value]\n" +
 			"edit dailydouble, [category number], [question number], {true,false}\n" +
 			"(Category number can be 'final')";
 
-		var editType = toId(params[0]);
+		let editType = toId(params[0]);
 		if (!(editType in {category: 1, question: 1, answer: 1, dailydouble: 1})) return this.sendReply(usage);
 		if (editType === 'category') {
 			if (params.length < 3) return this.sendReply(usage);
@@ -554,8 +554,8 @@ var commands = {
 			return this.sendReply(usage);
 		}
 
-		var jeopardy = jeopardies[room.id];
-		var questions = null;
+		let jeopardy = jeopardies[room.id];
+		let questions = null;
 
 		if (!jeopardy) {
 			if (!this.can('jeopardy', null, room)) return;
@@ -565,7 +565,7 @@ var commands = {
 			questions = jeopardy.questions;
 		}
 
-		var categoryNumber = parseInt(params[1], 10) || toId(params[1]);
+		let categoryNumber = parseInt(params[1], 10) || toId(params[1]);
 		if (!(1 <= categoryNumber && categoryNumber <= questions.categoryCount || categoryNumber === 'final')) return this.sendReply("Please enter a valid category number.");
 		if (categoryNumber === 'final') {
 			categoryNumber = 'final';
@@ -577,7 +577,7 @@ var commands = {
 			questions.setCategory(categoryNumber, params.slice(2).join(',').trim());
 			this.sendReply("The category name has been updated.");
 		} else {
-			var questionNumber = parseInt(params[2], 10);
+			let questionNumber = parseInt(params[2], 10);
 			if (!(1 <= questionNumber && questionNumber <= questions.questionCount || categoryNumber === 'final')) return this.sendReply("Please enter a valid question number.");
 			if (categoryNumber === 'final') {
 				questionNumber = 0;
@@ -585,31 +585,32 @@ var commands = {
 				--questionNumber;
 			}
 
-			var value = params.slice(3).join(',').trim();
+			let value = params.slice(3).join(',').trim();
+			let isSet = false;
 			switch (editType) {
-				case 'question':
-					questions.setQuestion(categoryNumber, questionNumber, value);
-					this.sendReply("The question has been updated.");
-					break;
+			case 'question':
+				questions.setQuestion(categoryNumber, questionNumber, value);
+				this.sendReply("The question has been updated.");
+				break;
 
-				case 'answer':
-					questions.setAnswer(categoryNumber, questionNumber, value);
-					this.sendReply("The answer has been updated.");
-					break;
+			case 'answer':
+				questions.setAnswer(categoryNumber, questionNumber, value);
+				this.sendReply("The answer has been updated.");
+				break;
 
-				case 'dailydouble':
-					var isSet = toId(value) === 'true';
-					questions.setDailyDouble(categoryNumber, questionNumber, isSet);
-					this.sendReply("The daily double has been " + (isSet ? "set." : "unset."));
-					break;
+			case 'dailydouble':
+				isSet = toId(value) === 'true';
+				questions.setDailyDouble(categoryNumber, questionNumber, isSet);
+				this.sendReply("The daily double has been " + (isSet ? "set." : "unset."));
+				break;
 			}
 		}
 	},
 	export: function (target, room, user) {
-		var params = target.split(',');
+		let params = target.split(',');
 
-		var jeopardy = jeopardies[room.id];
-		var questions = null;
+		let jeopardy = jeopardies[room.id];
+		let questions = null;
 
 		if (!jeopardy) {
 			if (!this.can('jeopardy', null, room)) return;
@@ -619,22 +620,22 @@ var commands = {
 			questions = jeopardy.questions;
 		}
 
-		var categoryNumber = parseInt(params[0], 10);
+		let categoryNumber = parseInt(params[0], 10);
 		if (!(1 <= categoryNumber && categoryNumber <= questions.categoryCount)) return this.sendReply("Please enter a valid category number.");
 
-		var start = params[1] ? parseInt(params[1], 10) : 1;
-		var end = params[2] ? parseInt(params[2], 10) : questions.questionCount;
+		let start = params[1] ? parseInt(params[1], 10) : 1;
+		let end = params[2] ? parseInt(params[2], 10) : questions.questionCount;
 		if (!(1 <= start && start <= questions.questionCount)) return this.sendReply("Please enter a valid starting question number.");
 		if (!(1 <= end && end <= questions.questionCount)) return this.sendReply("Please enter a valid ending question number.");
 
 		this.sendReply('||' + JSON.stringify(questions.export(categoryNumber - 1, start - 1, end)));
 	},
 	import: function (target, room, user) {
-		var params = target.split(',');
+		let params = target.split(',');
 		if (params.length < 2) return this.sendReply("Usage: import [category number], [start], [end], [data]");
 
-		var jeopardy = jeopardies[room.id];
-		var questions = null;
+		let jeopardy = jeopardies[room.id];
+		let questions = null;
 
 		if (!jeopardy) {
 			if (!this.can('jeopardy', null, room)) return;
@@ -644,12 +645,12 @@ var commands = {
 			questions = jeopardy.questions;
 		}
 
-		var categoryNumber = parseInt(params[0], 10);
+		let categoryNumber = parseInt(params[0], 10);
 		if (!(1 <= categoryNumber && categoryNumber <= questions.categoryCount)) return this.sendReply("Please enter a valid category number.");
 
-		var dataStart = 1;
-		var start = parseInt(params[1], 10);
-		var end = parseInt(params[2], 10);
+		let dataStart = 1;
+		let start = parseInt(params[1], 10);
+		let end = parseInt(params[2], 10);
 		if (!isNaN(start)) {
 			++dataStart;
 			if (!isNaN(end)) {
@@ -661,7 +662,7 @@ var commands = {
 		if (!(1 <= start && start <= questions.questionCount)) return this.sendReply("Please enter a valid starting question number.");
 		if (!(1 <= end && end <= questions.questionCount)) return this.sendReply("Please enter a valid ending question number.");
 
-		var data;
+		let data;
 		try {
 			data = JSON.parse(params.slice(dataStart).join(','));
 		} catch (e) {
@@ -672,20 +673,20 @@ var commands = {
 	},
 
 	create: function (target, room, user) {
-		var params = target.split(',');
+		let params = target.split(',');
 
 		if (jeopardies[room.id]) return this.sendReply("There is already a Jeopardy match in this room.");
 		if (!this.can('jeopardy', null, room)) return;
 
-		var categoryCount = parseInt(params[0], 10) || MAX_CATEGORY_COUNT;
-		var questionCount = parseInt(params[1], 10) || MAX_QUESTION_COUNT;
+		let categoryCount = parseInt(params[0], 10) || MAX_CATEGORY_COUNT;
+		let questionCount = parseInt(params[1], 10) || MAX_QUESTION_COUNT;
 		if (categoryCount > MAX_CATEGORY_COUNT) return this.sendReply("A match with more than " + MAX_CATEGORY_COUNT + " categories cannot be created.");
 		if (questionCount > MAX_QUESTION_COUNT) return this.sendReply("A match with more than " + MAX_CATEGORY_COUNT + " questions per category cannot be created.");
 
 		jeopardies[room.id] = new Jeopardy(user, room, categoryCount, questionCount);
 	},
 	start: function (target, room, user) {
-		var jeopardy = jeopardies[room.id];
+		let jeopardy = jeopardies[room.id];
 		if (!jeopardy) return this.sendReply("There is no Jeopardy match currently in this room.");
 
 		jeopardy.start(user, this);
@@ -699,66 +700,66 @@ var commands = {
 	},
 
 	adduser: function (target, room, user) {
-		var targetUser = Users.get(target);
+		let targetUser = Users.get(target);
 		if (!targetUser) return this.sendReply("User '" + target + "' not found.");
 
-		var jeopardy = jeopardies[room.id];
+		let jeopardy = jeopardies[room.id];
 		if (!jeopardy) return this.sendReply("There is no Jeopardy match currently in this room.");
 
 		jeopardy.addUser(user, targetUser, this);
 	},
 	removeuser: function (target, room, user) {
-		var targetUser = Users.get(target);
+		let targetUser = Users.get(target);
 		if (!targetUser) return this.sendReply("User '" + target + "' not found.");
 
-		var jeopardy = jeopardies[room.id];
+		let jeopardy = jeopardies[room.id];
 		if (!jeopardy) return this.sendReply("There is no Jeopardy match currently in this room.");
 
 		jeopardy.removeUser(user, targetUser, this);
 	},
 
 	select: function (target, room, user) {
-		var params = target.split(',');
+		let params = target.split(',');
 		if (params.length < 2) return this.sendReply("Usage: select [category number], [question number]");
 
-		var jeopardy = jeopardies[room.id];
+		let jeopardy = jeopardies[room.id];
 		if (!jeopardy) return this.sendReply("There is no Jeopardy match currently in this room.");
 
-		var category = parseInt(params[0], 10) - 1;
-		var question = parseInt(params[1], 10) - 1;
+		let category = parseInt(params[0], 10) - 1;
+		let question = parseInt(params[1], 10) - 1;
 
 		jeopardy.select(user, category, question, this);
 	},
 	a: 'answer',
 	answer: function (target, room, user) {
-		var jeopardy = jeopardies[room.id];
+		let jeopardy = jeopardies[room.id];
 		if (!jeopardy) return this.sendReply("There is no Jeopardy match currently in this room.");
 
 		jeopardy.answer(user, target, this);
 	},
 	incorrect: 'correct',
 	correct: function (target, room, user, connection, cmd) {
-		var jeopardy = jeopardies[room.id];
+		let jeopardy = jeopardies[room.id];
 		if (!jeopardy) return this.sendReply("There is no Jeopardy match currently in this room.");
 
 		jeopardy.mark(user, cmd === 'correct', this);
 	},
 	skip: function (target, room, user) {
-		var jeopardy = jeopardies[room.id];
+		let jeopardy = jeopardies[room.id];
 		if (!jeopardy) return this.sendReply("There is no Jeopardy match currently in this room.");
 
 		jeopardy.skip(user, this);
 	},
 
 	wager: function (target, room, user) {
-		var jeopardy = jeopardies[room.id];
+		let jeopardy = jeopardies[room.id];
 		if (!jeopardy) return this.sendReply("There is no Jeopardy match currently in this room.");
 
 		jeopardy.wager(user, target, this);
 	}
 };
 
-var jeopardyRoom = Rooms.get('academics');
+let jeopardyRoom = Rooms.get('academics');
 if (jeopardyRoom) {
 	if (jeopardyRoom.plugin) {
 		jeopardies = jeopardyRoom.plugin.jeopardies;

@@ -1,3 +1,5 @@
+'use strict';
+
 exports.BattleItems = {
 	amuletcoin: {
 		id: "amuletcoin",
@@ -55,13 +57,13 @@ exports.BattleItems = {
 	leppaberry: {
 		inherit: true,
 		onEat: function (pokemon) {
-			var move;
+			let move;
 			if (pokemon.volatiles['leppaberry']) {
 				move = pokemon.volatiles['leppaberry'].move;
 				pokemon.removeVolatile('leppaberry');
 			} else {
-				var pp = 99;
-				for (var i in pokemon.moveset) {
+				let pp = 99;
+				for (let i in pokemon.moveset) {
 					if (pokemon.moveset[i].pp < pp) {
 						move = pokemon.moveset[i];
 						pp = move.pp;
@@ -70,7 +72,7 @@ exports.BattleItems = {
 			}
 			move.pp += 5;
 			if (move.pp > move.maxpp) move.pp = move.maxpp;
-			this.add('-activate', pokemon, 'item: Leppa Berry', move.name);
+			this.add('-activate', pokemon, 'item: Leppa Berry', move.move);
 		},
 		gen: 2,
 		desc: "Restores 5PP to the first of the holder's moves to reach 0PP. Single use."
@@ -80,6 +82,14 @@ exports.BattleItems = {
 		// On Gen 2 this happens in stat calculation directly.
 		onModifyAtk: function () {},
 		onModifySpA: function () {}
+	},
+	luckypunch: {
+		inherit: true,
+		onModifyMove: function (move, user) {
+			if (user.template.species === 'Chansey') {
+				move.critRatio = 3;
+			}
+		}
 	},
 	lumberry: {
 		inherit: true,
@@ -126,6 +136,14 @@ exports.BattleItems = {
 	sitrusberry: {
 		inherit: true,
 		gen: 2
+	},
+	stick: {
+		inherit: true,
+		onModifyMove: function (move, user) {
+			if (user.template.species === 'Farfetch\'d') {
+				move.critRatio = 3;
+			}
+		}
 	},
 	thickclub: {
 		inherit: true,

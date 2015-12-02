@@ -1,3 +1,5 @@
+'use strict';
+
 exports.BattleAbilities = {
 	"angerpoint": {
 		inherit: true,
@@ -11,7 +13,48 @@ exports.BattleAbilities = {
 			}
 		}
 	},
+	"flowergift": {
+		inherit: true,
+		onAllyModifyAtk: function (atk) {
+			if (this.isWeather('sunnyday')) {
+				return this.chainModify(1.5);
+			}
+		},
+		onAllyModifySpD: function (spd) {
+			if (this.isWeather('sunnyday')) {
+				return this.chainModify(1.5);
+			}
+		}
+	},
+	"forewarn": {
+		inherit: true,
+		onStart: function (pokemon) {
+			let targets = pokemon.side.foe.active;
+			let warnMoves = [];
+			let warnBp = 1;
+			for (let i = 0; i < targets.length; i++) {
+				if (targets[i].fainted) continue;
+				for (let j = 0; j < targets[i].moveset.length; j++) {
+					let move = this.getMove(targets[i].moveset[j].move);
+					let bp = move.basePower;
+					if (move.ohko) bp = 160;
+					if (move.id === 'counter' || move.id === 'metalburst' || move.id === 'mirrorcoat') bp = 120;
+					if (!bp && move.category !== 'Status') bp = 80;
+					if (bp > warnBp) {
+						warnMoves = [move];
+						warnBp = bp;
+					} else if (bp === warnBp) {
+						warnMoves.push(move);
+					}
+				}
+			}
+			if (!warnMoves.length) return;
+			let warnMove = warnMoves[this.random(warnMoves.length)];
+			this.add('-activate', pokemon, 'ability: Forewarn', warnMove);
+		}
+	},
 	"leafguard": {
+		inherit: true,
 		onSetStatus: function (status, target, source, effect) {
 			if (effect && effect.id === 'rest') {
 				return;
@@ -49,11 +92,11 @@ exports.BattleAbilities = {
 		desc: "This Pokemon's Special Attack receives a 50% boost in double battles if its partner has the Plus ability.",
 		shortDesc: "If an ally has the Plus Ability, this Pokemon's Sp. Atk is 1.5x.",
 		onModifySpA: function (spa, pokemon) {
-			var allyActive = pokemon.side.active;
+			let allyActive = pokemon.side.active;
 			if (allyActive.length === 1) {
 				return;
 			}
-			for (var i = 0; i < allyActive.length; i++) {
+			for (let i = 0; i < allyActive.length; i++) {
 				if (allyActive[i] && allyActive[i].position !== pokemon.position && !allyActive[i].fainted && allyActive[i].ability === 'plus') {
 					return spa * 1.5;
 				}
@@ -85,11 +128,11 @@ exports.BattleAbilities = {
 		desc: "This Pokemon's Special Attack receives a 50% boost in double battles if its partner has the Minus ability.",
 		shortDesc: "If an ally has the Minus Ability, this Pokemon's Sp. Atk is 1.5x.",
 		onModifySpA: function (spa, pokemon) {
-			var allyActive = pokemon.side.active;
+			let allyActive = pokemon.side.active;
 			if (allyActive.length === 1) {
 				return;
 			}
-			for (var i = 0; i < allyActive.length; i++) {
+			for (let i = 0; i < allyActive.length; i++) {
 				if (allyActive[i] && allyActive[i].position !== pokemon.position && !allyActive[i].fainted && allyActive[i].ability === 'minus') {
 					return spa * 1.5;
 				}
@@ -100,10 +143,38 @@ exports.BattleAbilities = {
 		rating: 0,
 		num: 57
 	},
+	"pressure": {
+		desc: "If this Pokemon is the target of another Pokemon's move, that move loses one additional PP.",
+		shortDesc: "If this Pokemon is the target of a move, that move loses one additional PP.",
+		onStart: function (pokemon) {
+			this.add('-ability', pokemon, 'Pressure');
+		},
+		onDeductPP: function (target, source) {
+			if (target === source) return;
+			return 1;
+		},
+		id: "pressure",
+		name: "Pressure",
+		rating: 1.5,
+		num: 46
+	},
+	"serenegrace": {
+		inherit: true,
+		onModifyMove: function (move) {
+			if (move.secondaries) {
+				this.debug('doubling secondary chance');
+				for (var i = 0; i < move.secondaries.length; i++) {
+					move.secondaries[i].chance *= 2;
+				}
+			}
+		}
+	},
 	"simple": {
 		shortDesc: "If this Pokemon's stat stages are raised or lowered, the effect is doubled instead.",
-		onModifyBoost: function () {
-			return this.chainModify(2);
+		onModifyBoost: function (boosts) {
+			for (let key in boosts) {
+				boosts[key] *= 2;
+			}
 		},
 		id: "simple",
 		name: "Simple",
@@ -126,25 +197,15 @@ exports.BattleAbilities = {
 		rating: 0
 	},
 	"sturdy": {
-		desc: "This Pokemon is immune to OHKO moves.",
-		shortDesc: "OHKO moves fail on this Pokemon.",
-		onDamagePriority: -100,
-		onDamage: function (damage, target, source, effect) {
-			if (effect && effect.ohko) {
-				this.add('-activate', target, 'Sturdy');
-				return 0;
-			}
-		},
-		id: "sturdy",
-		name: "Sturdy",
-		rating: 0.5,
-		num: 5
+		inherit: true,
+		onDamage: function () {}
 	},
 	"synchronize": {
 		inherit: true,
-		onAfterSetStatus: function (status, target, source) {
+		onAfterSetStatus: function (status, target, source, effect) {
 			if (!source || source === target) return;
-			var id = status.id;
+			if (effect && effect.id === 'toxicspikes') return;
+			let id = status.id;
 			if (id === 'slp' || id === 'frz') return;
 			if (id === 'tox') id = 'psn';
 			source.trySetStatus(id);
@@ -153,10 +214,10 @@ exports.BattleAbilities = {
 	"trace": {
 		inherit: true,
 		onUpdate: function (pokemon) {
-			var target = pokemon.side.foe.randomActive();
+			let target = pokemon.side.foe.randomActive();
 			if (!target || target.fainted) return;
-			var ability = this.getAbility(target.ability);
-			var bannedAbilities = {forecast:1, multitype:1, trace:1};
+			let ability = this.getAbility(target.ability);
+			let bannedAbilities = {forecast:1, multitype:1, trace:1};
 			if (bannedAbilities[target.ability]) {
 				return;
 			}

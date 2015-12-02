@@ -1,3 +1,5 @@
+'use strict';
+
 exports.BattleFormatsData = {
 	bulbasaur: {
 		randomBattleMoves: ["sleeppowder","gigadrain","hiddenpowerfire","hiddenpowerice","sludgebomb","powerwhip","leechseed","synthesis"],
@@ -172,7 +174,7 @@ exports.BattleFormatsData = {
 		eventPokemon: [
 			{"generation":4,"level":30,"gender":"F","nature":"Naughty","moves":["helpinghand","volttackle","swagger","painsplit"]}
 		],
-		tier: ""
+		tier: "Illegal"
 	},
 	pikachu: {
 		randomBattleMoves: ["thunderbolt","volttackle","voltswitch","grassknot","hiddenpowerice","brickbreak","extremespeed","encore","substitute"],
@@ -1079,6 +1081,9 @@ exports.BattleFormatsData = {
 	},
 	munchlax: {
 		randomBattleMoves: ["rest","curse","sleeptalk","bodyslam","earthquake","return","firepunch","icepunch","whirlwind"],
+		eventPokemon: [
+			{"generation":4,"level":5,"moves":["metronome","tackle","defensecurl","selfdestruct"]}
+		],
 		tier: "NU"
 	},
 	snorlax: {
@@ -1160,7 +1165,8 @@ exports.BattleFormatsData = {
 	chikorita: {
 		randomBattleMoves: ["reflect","lightscreen","safeguard","aromatherapy","grasswhistle","leechseed","toxic","gigadrain","synthesis"],
 		eventPokemon: [
-			{"generation":3,"level":10,"gender":"M","moves":["tackle","growl","razorleaf"]}
+			{"generation":3,"level":10,"gender":"M","moves":["tackle","growl","razorleaf"]},
+			{"generation":3,"level":5,"moves":["tackle","growl","ancientpower","frenzyplant"]}
 		],
 		tier: "LC"
 	},
@@ -1175,7 +1181,8 @@ exports.BattleFormatsData = {
 	cyndaquil: {
 		randomBattleMoves: ["eruption","fireblast","flamethrower","hiddenpowergrass","naturepower"],
 		eventPokemon: [
-			{"generation":3,"level":10,"gender":"M","moves":["tackle","leer","smokescreen"]}
+			{"generation":3,"level":10,"gender":"M","moves":["tackle","leer","smokescreen"]},
+			{"generation":3,"level":5,"moves":["tackle","leer","reversal","blastburn"]}
 		],
 		tier: "LC"
 	},
@@ -1193,7 +1200,8 @@ exports.BattleFormatsData = {
 	totodile: {
 		randomBattleMoves: ["aquajet","waterfall","crunch","icepunch","superpower","dragondance","swordsdance"],
 		eventPokemon: [
-			{"generation":3,"level":10,"gender":"M","moves":["scratch","leer","rage"]}
+			{"generation":3,"level":10,"gender":"M","moves":["scratch","leer","rage"]},
+			{"generation":3,"level":5,"moves":["scratch","leer","crunch","hydrocannon"]}
 		],
 		tier: "LC"
 	},
@@ -1660,7 +1668,7 @@ exports.BattleFormatsData = {
 		eventPokemon: [
 			{"generation":3,"level":70,"moves":["swift","raindance","hydropump","recover"]},
 			{"generation":3,"level":70,"moves":["recover","hydropump","raindance","swift"]},
-			{"generation":3,"level":50,"moves":["psychoboost","recover","hydropump","featherdance"]}
+			{"generation":3,"level":50,"moves":["psychoboost","earthquake","hydropump","featherdance"]}
 		],
 		dreamWorldPokeball: 'dreamball',
 		tier: "Uber"
@@ -1756,7 +1764,7 @@ exports.BattleFormatsData = {
 	poochyena: {
 		randomBattleMoves: ["superfang","foulplay","suckerpunch","toxic"],
 		eventPokemon: [
-			{"generation":3,"level":10,"abilities":["runaway"],"moves":["healbell","dig","poisonfang","growl"]}
+			{"generation":3,"level":10,"abilities":["runaway"],"moves":["healbell","dig","poisonfang","howl"]}
 		],
 		tier: "LC"
 	},
@@ -3436,7 +3444,7 @@ exports.BattleFormatsData = {
 	},
 	excadrill: {
 		randomBattleMoves: ["swordsdance","rapidspin","earthquake","rockslide","ironhead"],
-		tier: "Uber"
+		tier: "OU"
 	},
 	audino: {
 		randomBattleMoves: ["wish","protect","healbell","toxic","thunderwave","reflect","lightscreen","return"],

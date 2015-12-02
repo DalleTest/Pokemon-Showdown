@@ -1,3 +1,5 @@
+'use strict';
+
 exports.BattleMovedex = {
 	/******************************************************************
 	Perfect accuracy moves:
@@ -144,23 +146,10 @@ exports.BattleMovedex = {
 			},
 			onTryPrimaryHitPriority: 2,
 			onTryPrimaryHit: function (target, source, move) {
-				if (target === source) {
-					this.debug('sub bypass: self hit');
+				if (target === source || move.flags['authentic'] || move.infiltrates) {
 					return;
 				}
-				if (move.notSubBlocked || move.flags['sound']) {
-					return;
-				}
-				if (move.category === 'Status') {
-					var SubBlocked = {
-						block:1, embargo:1, entrainment:1, gastroacid:1, healblock:1, healpulse:1, leechseed:1, lockon:1, meanlook:1, mindreader:1, nightmare:1, painsplit:1, psychoshift:1, simplebeam:1, skydrop:1, soak: 1, spiderweb:1, switcheroo:1, topsyturvy:1, trick:1, worryseed:1, yawn:1
-					};
-					if (move.status || move.boosts || move.volatileStatus === 'confusion' || SubBlocked[move.id]) {
-						return false;
-					}
-					return;
-				}
-				var damage = this.getDamage(source, target, move);
+				let damage = this.getDamage(source, target, move);
 				if (!damage) {
 					return null;
 				}
@@ -201,14 +190,9 @@ exports.BattleMovedex = {
 			},
 			onTryHitPriority: 3,
 			onTryHit: function (target, source, move) {
-				if (target.volatiles.substitute) return;
-				if (move.breaksProtect) {
-					target.removeVolatile('Protect');
-					return;
-				}
-				if (move && (move.target === 'self' || move.isNotProtectable)) return;
+				if (target.volatiles.substitute || !move.flags['protect']) return;
 				this.add('-activate', target, 'Protect');
-				var lockedmove = source.getVolatile('lockedmove');
+				let lockedmove = source.getVolatile('lockedmove');
 				if (lockedmove) {
 					// Outrage counter is reset
 					if (source.volatiles['lockedmove'].duration === 2) {
@@ -228,21 +212,16 @@ exports.BattleMovedex = {
 			},
 			onTryHitPriority: 3,
 			onTryHit: function (target, source, move) {
-				if (target.volatiles.substitute) return;
-				if (move.breaksProtect) {
-					target.removeVolatile('kingsshield');
-					return;
-				}
-				if (move && (move.category === 'Status' || move.isNotProtectable)) return;
+				if (target.volatiles.substitute || !move.flags['protect'] || move.category === 'Status') return;
 				this.add('-activate', target, 'Protect');
-				var lockedmove = source.getVolatile('lockedmove');
+				let lockedmove = source.getVolatile('lockedmove');
 				if (lockedmove) {
 					// Outrage counter is reset
 					if (source.volatiles['lockedmove'].duration === 2) {
 						delete source.volatiles['lockedmove'];
 					}
 				}
-				if (move.isContact) {
+				if (move.flags['contact']) {
 					this.boost({atk:-2}, source, target, this.getMove("King's Shield"));
 				}
 				return null;
@@ -258,14 +237,10 @@ exports.BattleMovedex = {
 			},
 			onTryHitPriority: 3,
 			onTryHit: function (target, source, move) {
-				if (target.volatiles.substitute) return;
-				if (move.breaksProtect) {
-					target.removeVolatile('spikyshield');
-					return;
-				}
+				if (target.volatiles.substitute || !move.flags['protect']) return;
 				if (move && (move.target === 'self' || move.id === 'suckerpunch')) return;
 				this.add('-activate', target, 'move: Protect');
-				if (move.isContact) {
+				if (move.flags['contact']) {
 					this.damage(source.maxhp / 8, source, target);
 				}
 				return null;
@@ -321,6 +296,7 @@ exports.BattleMovedex = {
 				this.heal(pokemon.maxhp / 2);
 			}
 		},
+		flags: {charge: 1, mirror: 1},
 		breaksProtect: true
 	},
 	razorwind: {
@@ -336,6 +312,7 @@ exports.BattleMovedex = {
 			chance: 100,
 			volatileStatus: 'confusion'
 		},
+		flags: {charge: 1, mirror: 1},
 		breaksProtect: true
 	},
 	skullbash: {
@@ -361,6 +338,7 @@ exports.BattleMovedex = {
 			attacker.addVolatile('twoturnmove', defender);
 			return null;
 		},
+		flags: {contact: 1, charge: 1, mirror: 1},
 		breaksProtect: true
 	},
 	skyattack: {
@@ -378,6 +356,7 @@ exports.BattleMovedex = {
 				def: -1
 			}
 		},
+		flags: {charge: 1, mirror: 1, distance: 1},
 		breaksProtect: true
 	},
 	freezeshock: {
@@ -393,6 +372,7 @@ exports.BattleMovedex = {
 			chance: 100,
 			status: 'par'
 		},
+		flags: {charge: 1, mirror: 1},
 		breaksProtect: true
 	},
 	iceburn: {
@@ -408,6 +388,7 @@ exports.BattleMovedex = {
 			chance: 100,
 			status: 'brn'
 		},
+		flags: {charge: 1, mirror: 1},
 		breaksProtect: true
 	},
 	bounce: {
@@ -423,6 +404,7 @@ exports.BattleMovedex = {
 			chance: 30,
 			status: 'par'
 		},
+		flags: {contact: 1, charge: 1, mirror: 1, gravity: 1, distance: 1},
 		breaksProtect: true
 	},
 	fly: {
@@ -440,6 +422,7 @@ exports.BattleMovedex = {
 				def: -1
 			}
 		},
+		flags: {contact: 1, charge: 1, mirror: 1, gravity: 1, distance: 1},
 		breaksProtect: true
 	},
 	dig: {
@@ -457,6 +440,7 @@ exports.BattleMovedex = {
 				def: -1
 			}
 		},
+		flags: {contact: 1, charge: 1, mirror: 1, nonsky: 1},
 		breaksProtect: true
 	},
 	dive: {
@@ -474,6 +458,7 @@ exports.BattleMovedex = {
 				def: -1
 			}
 		},
+		flags: {contact: 1, charge: 1, mirror: 1, nonsky: 1},
 		breaksProtect: true
 	},
 	phantomforce: {
@@ -519,6 +504,7 @@ exports.BattleMovedex = {
 				def: -1
 			}
 		},
+		flags: {contact: 1, charge: 1, mirror: 1, gravity: 1, distance: 1},
 		breaksProtect: true
 	},
 	hyperbeam: {
@@ -645,7 +631,7 @@ exports.BattleMovedex = {
 						return false;
 					}
 					this.add('-end', pokemon, 'Bide');
-					var target = this.effectData.sourceSide.active[this.effectData.sourcePosition];
+					let target = this.effectData.sourceSide.active[this.effectData.sourcePosition];
 					this.moveHit(target, pokemon, 'bide', {damage: this.effectData.totalDamage * 2});
 					return false;
 				}
@@ -667,7 +653,7 @@ exports.BattleMovedex = {
 		onBasePower: function (power, user) {
 			if (user.template.id === 'snorlax') return power * 1.5;
 		},
-		affectedByImmunities: false
+		ignoreImmunity: true
 	},
 	/******************************************************************
 	Sound-based Normal-type moves:
@@ -679,19 +665,19 @@ exports.BattleMovedex = {
 	******************************************************************/
 	boomburst: {
 		inherit: true,
-		affectedByImmunities: false
+		ignoreImmunity: true
 	},
 	hypervoice: {
 		inherit: true,
-		affectedByImmunities: false
+		ignoreImmunity: true
 	},
 	round: {
 		inherit: true,
-		affectedByImmunities: false
+		ignoreImmunity: true
 	},
 	uproar: {
 		inherit: true,
-		affectedByImmunities: false
+		ignoreImmunity: true
 	},
 	/******************************************************************
 	Bonemerang, Bone Rush, Bone Club moves:
@@ -703,18 +689,18 @@ exports.BattleMovedex = {
 	******************************************************************/
 	bonemerang: {
 		inherit: true,
-		affectedByImmunities: false,
+		ignoreImmunity: true,
 		accuracy: true
 	},
 	bonerush: {
 		inherit: true,
 		basePower: 20,
-		affectedByImmunities: false,
+		ignoreImmunity: true,
 		accuracy: true
 	},
 	boneclub: {
 		inherit: true,
-		affectedByImmunities: false,
+		ignoreImmunity: true,
 		accuracy: 90
 	},
 	/******************************************************************
@@ -727,12 +713,12 @@ exports.BattleMovedex = {
 	relicsong: {
 		inherit: true,
 		basePower: 60,
-		affectedByImmunities: false,
+		ignoreImmunity: true,
 		onHit: function (target, pokemon) {
 			if (pokemon.baseTemplate.species !== 'Meloetta' || pokemon.transformed) {
 				return;
 			}
-			var natureChange = {
+			let natureChange = {
 				'Modest': 'Adamant',
 				'Adamant': 'Modest',
 				'Timid': 'Jolly',
@@ -740,22 +726,22 @@ exports.BattleMovedex = {
 			};
 			if (pokemon.template.speciesid === 'meloettapirouette' && pokemon.formeChange('Meloetta')) {
 				this.add('-formechange', pokemon, 'Meloetta');
-				var tmpAtkEVs = pokemon.set.evs.atk;
+				let tmpAtkEVs = pokemon.set.evs.atk;
 				pokemon.set.evs.atk = pokemon.set.evs.spa;
 				pokemon.set.evs.spa = tmpAtkEVs;
 				if (natureChange[pokemon.set.nature]) pokemon.set.nature = natureChange[pokemon.set.nature];
-				var Atk2SpA = (pokemon.boosts.spa || 0) - (pokemon.boosts.atk || 0);
+				let Atk2SpA = (pokemon.boosts.spa || 0) - (pokemon.boosts.atk || 0);
 				this.boost({
 					atk: Atk2SpA,
 					spa: -Atk2SpA
 				}, pokemon);
 			} else if (pokemon.formeChange('Meloetta-Pirouette')) {
 				this.add('-formechange', pokemon, 'Meloetta-Pirouette');
-				var tmpAtkEVs = pokemon.set.evs.atk;
+				let tmpAtkEVs = pokemon.set.evs.atk;
 				pokemon.set.evs.atk = pokemon.set.evs.spa;
 				pokemon.set.evs.spa = tmpAtkEVs;
 				if (natureChange[pokemon.set.nature]) pokemon.set.nature = natureChange[pokemon.set.nature];
-				var Atk2SpA = (pokemon.boosts.spa || 0) - (pokemon.boosts.atk || 0);
+				let Atk2SpA = (pokemon.boosts.spa || 0) - (pokemon.boosts.atk || 0);
 				this.boost({
 					atk: Atk2SpA,
 					spa: -Atk2SpA
@@ -790,9 +776,9 @@ exports.BattleMovedex = {
 				this.add('-sidestart', side, 'move: Stealth Rock');
 			},
 			onSwitchIn: function (pokemon) {
-				var factor = 2;
+				let factor = 2;
 				if (pokemon.hasType('Flying')) factor = 4;
-				var damage = this.damage(pokemon.maxhp * factor / 16);
+				this.damage(pokemon.maxhp * factor / 16);
 			}
 		}
 	},
@@ -824,15 +810,15 @@ exports.BattleMovedex = {
 			chance: 100,
 			self: {
 				onHit: function (target, source) {
-					var stats = [];
-					for (var i in target.boosts) {
+					let stats = [];
+					for (let i in target.boosts) {
 						if (i !== 'accuracy' && i !== 'evasion' && i !== 'atk' && target.boosts[i] < 6) {
 							stats.push(i);
 						}
 					}
 					if (stats.length) {
-						var i = stats[this.random(stats.length)];
-						var boost = {};
+						let i = stats[this.random(stats.length)];
+						let boost = {};
 						boost[i] = 1;
 						this.boost(boost);
 					} else {
@@ -854,15 +840,15 @@ exports.BattleMovedex = {
 			chance: 100,
 			self: {
 				onHit: function (target, source) {
-					var stats = [];
-					for (var i in target.boosts) {
+					let stats = [];
+					for (let i in target.boosts) {
 						if (i !== 'accuracy' && i !== 'evasion' && i !== 'atk' && target.boosts[i] < 6) {
 							stats.push(i);
 						}
 					}
 					if (stats.length) {
-						var i = stats[this.random(stats.length)];
-						var boost = {};
+						let i = stats[this.random(stats.length)];
+						let boost = {};
 						boost[i] = 1;
 						this.boost(boost);
 					} else {
@@ -878,15 +864,15 @@ exports.BattleMovedex = {
 			chance: 100,
 			self: {
 				onHit: function (target, source) {
-					var stats = [];
-					for (var i in target.boosts) {
+					let stats = [];
+					for (let i in target.boosts) {
 						if (i !== 'accuracy' && i !== 'evasion' && i !== 'atk' && target.boosts[i] < 6) {
 							stats.push(i);
 						}
 					}
 					if (stats.length) {
-						var i = stats[this.random(stats.length)];
-						var boost = {};
+						let i = stats[this.random(stats.length)];
+						let boost = {};
 						boost[i] = 1;
 						this.boost(boost);
 					} else {
@@ -1045,7 +1031,7 @@ exports.BattleMovedex = {
 		inherit: true,
 		basePower: 80,
 		onBasePower: function (power, user) {
-			var GossamerWingUsers = {"Butterfree":1, "Venomoth":1, "Masquerain":1, "Dustox":1, "Beautifly":1, "Mothim":1, "Lilligant":1, "Volcarona":1, "Vivillon":1};
+			let GossamerWingUsers = {"Butterfree":1, "Venomoth":1, "Masquerain":1, "Dustox":1, "Beautifly":1, "Mothim":1, "Lilligant":1, "Volcarona":1, "Vivillon":1};
 			if (user.hasItem('stick') && GossamerWingUsers[user.template.species]) {
 				return power * 1.5;
 			}
@@ -1194,7 +1180,7 @@ exports.BattleMovedex = {
 		category: "Special",
 		isViable: true,
 		priority: 0,
-		affectedByImmunities: false,
+		ignoreImmunity: true,
 		onHit: function (target, source) {
 			source.side.addSideCondition('futuremove');
 			if (source.side.sideConditions['futuremove'].positions[source.position]) {
@@ -1206,11 +1192,11 @@ exports.BattleMovedex = {
 				targetPosition: target.position,
 				source: source,
 				moveData: {
+					name: "Future Sight",
 					basePower: 80,
 					category: "Special",
 					flags: {},
-					isNotProtectable: true,
-					affectedByImmunities: false,
+					ignoreImmunity: true,
 					type: 'Normal'
 				}
 			};
@@ -1234,13 +1220,13 @@ exports.BattleMovedex = {
 		inherit: true,
 		basePower: 30,
 		onBasePower: function (power, user) {
-			var doubled = false;
+			let doubled = false;
 			if (user.removeVolatile('leechseed')) {
 				this.add('-end', user, 'Leech Seed', '[from] move: Rapid Spin', '[of] ' + user);
 				doubled = true;
 			}
-			var sideConditions = {spikes:1, toxicspikes:1, stealthrock:1};
-			for (var i in sideConditions) {
+			let sideConditions = {spikes:1, toxicspikes:1, stealthrock:1};
+			for (let i in sideConditions) {
 				if (user.side.removeSideCondition(i)) {
 					this.add('-sideend', user.side, this.getEffect(i).name, '[from] move: Rapid Spin', '[of] ' + user);
 					doubled = true;
@@ -1865,10 +1851,11 @@ exports.BattleMovedex = {
 		accuracy: 100,
 		onModifyMove: function (move, user) {
 			if (user.illusion) {
-				var illusionMoves = user.illusion.moves.filter(function (move) {
+				let illusionMoves = user.illusion.moves.filter(function (move) {
 					return this.getMove(move).category !== 'Status';
 				}, this);
-				if (illusionMoves.length) move.name = this.getMove(illusionMoves.sample()).name;
+				if (!illusionMoves.length) return;
+				move.name = this.getMove(illusionMoves[this.random(illusionMoves.length)]).name;
 			}
 		}
 	},
@@ -1891,11 +1878,11 @@ exports.BattleMovedex = {
 	},
 	acid: {
 		inherit: true,
-		affectedByImmunities: false
+		ignoreImmunity: true
 	},
 	acidspray: {
 		inherit: true,
-		affectedByImmunities: false
+		ignoreImmunity: true
 	},
 	eggbomb: {
 		inherit: true,
@@ -1919,11 +1906,12 @@ exports.BattleMovedex = {
 		pp: 10,
 		isViable: true,
 		priority: 0,
+		flags: {protect: 1, mirror: 1},
 		multihit: [3, 3],
 		secondary: {
 			chance: 10,
 			onHit: function (target, source) {
-				var result = this.random(3);
+				let result = this.random(3);
 				if (result === 0) {
 					target.trySetStatus('brn', source);
 				} else if (result === 1) {

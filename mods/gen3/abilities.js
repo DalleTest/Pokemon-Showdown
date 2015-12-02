@@ -1,8 +1,10 @@
+'use strict';
+
 exports.BattleAbilities = {
 	"cutecharm": {
 		inherit: true,
 		onAfterDamage: function (damage, target, source, move) {
-			if (move && move.isContact) {
+			if (move && move.flags['contact']) {
 				if (this.random(3) < 1) {
 					source.addVolatile('attract', target);
 				}
@@ -12,18 +14,22 @@ exports.BattleAbilities = {
 	"effectspore": {
 		inherit: true,
 		onAfterDamage: function (damage, target, source, move) {
-			if (move && move.isContact && !source.status) {
-				var r = this.random(300);
-				if (r < 10) source.setStatus('slp');
-				else if (r < 20) source.setStatus('par');
-				else if (r < 30) source.setStatus('psn');
+			if (move && move.flags['contact'] && !source.status) {
+				let r = this.random(300);
+				if (r < 10) {
+					source.setStatus('slp');
+				} else if (r < 20) {
+					source.setStatus('par');
+				} else if (r < 30) {
+					source.setStatus('psn');
+				}
 			}
 		}
 	},
 	"flamebody": {
 		inherit: true,
 		onAfterDamage: function (damage, target, source, move) {
-			if (move && move.isContact) {
+			if (move && move.flags['contact']) {
 				if (this.random(3) < 1) {
 					source.trySetStatus('brn', target, move);
 				}
@@ -68,7 +74,7 @@ exports.BattleAbilities = {
 	"poisonpoint": {
 		inherit: true,
 		onAfterDamage: function (damage, target, source, move) {
-			if (move && move.isContact) {
+			if (move && move.flags['contact']) {
 				if (this.random(3) < 1) {
 					source.trySetStatus('psn', target, move);
 				}
@@ -79,17 +85,22 @@ exports.BattleAbilities = {
 		inherit: true,
 		onStart: function () { }
 	},
-	"rockhead": {
-		inherit: true,
-		onModifyMove: function (move) {
-			if (move.id !== 'struggle') delete move.recoil;
-		}
-	},
 	"roughskin": {
 		inherit: true,
 		onAfterDamage: function (damage, target, source, move) {
-			if (source && source !== target && move && move.isContact) {
+			if (source && source !== target && move && move.flags['contact']) {
 				this.damage(source.maxhp / 16, source, target);
+			}
+		}
+	},
+	"serenegrace": {
+		inherit: true,
+		onModifyMove: function (move) {
+			if (move.secondaries) {
+				this.debug('doubling secondary chance');
+				for (var i = 0; i < move.secondaries.length; i++) {
+					move.secondaries[i].chance *= 2;
+				}
 			}
 		}
 	},
@@ -102,7 +113,7 @@ exports.BattleAbilities = {
 	"static": {
 		inherit: true,
 		onAfterDamage: function (damage, target, source, effect) {
-			if (effect && effect.isContact) {
+			if (effect && effect.flags['contact']) {
 				if (this.random(3) < 1) {
 					source.trySetStatus('par', target, effect);
 				}
@@ -115,18 +126,13 @@ exports.BattleAbilities = {
 	},
 	"sturdy": {
 		inherit: true,
-		onDamage: function (damage, target, source, effect) {
-			if (effect && effect.ohko) {
-				this.add('-activate', target, 'Sturdy');
-				return 0;
-			}
-		}
+		onDamage: function () {}
 	},
 	"synchronize": {
 		inherit: true,
 		onAfterSetStatus: function (status, target, source) {
 			if (!source || source === target) return;
-			var id = status.id;
+			let id = status.id;
 			if (id === 'slp' || id === 'frz') return;
 			if (id === 'tox') id = 'psn';
 			source.trySetStatus(id);
@@ -135,10 +141,10 @@ exports.BattleAbilities = {
 	"trace": {
 		inherit: true,
 		onUpdate: function (pokemon) {
-			var target = pokemon.side.foe.randomActive();
+			let target = pokemon.side.foe.randomActive();
 			if (!target || target.fainted) return;
-			var ability = this.getAbility(target.ability);
-			var bannedAbilities = {forecast:1, multitype:1, trace:1};
+			let ability = this.getAbility(target.ability);
+			let bannedAbilities = {forecast:1, multitype:1, trace:1};
 			if (bannedAbilities[target.ability]) {
 				return;
 			}

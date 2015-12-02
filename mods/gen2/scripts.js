@@ -1,3 +1,5 @@
+'use strict';
+
 /**
  * Gen 2 scripts.
  */
@@ -11,26 +13,24 @@ exports.BattleScripts = {
 			if (statName === 'hp') return this.maxhp;
 
 			// base stat
-			var stat = this.stats[statName];
+			let stat = this.stats[statName];
 
 			// Stat boosts.
 			if (!unboosted) {
-				var boost = this.boosts[statName];
+				let boost = this.boosts[statName];
 				if (boost > 6) boost = 6;
 				if (boost < -6) boost = -6;
 				if (boost >= 0) {
-					var boostTable = [1, 1.5, 2, 2.5, 3, 3.5, 4];
+					let boostTable = [1, 1.5, 2, 2.5, 3, 3.5, 4];
 					stat = Math.floor(stat * boostTable[boost]);
 				} else {
-					var numerators = [100, 66, 50, 40, 33, 28, 25];
+					let numerators = [100, 66, 50, 40, 33, 28, 25];
 					stat = Math.floor(stat * numerators[-boost] / 100);
 				}
 
 				// On Gen 2 we check modifications here from moves and items
-				var statTable = {atk:'Atk', def:'Def', spa:'SpA', spd:'SpD', spe:'Spe'};
-				var statMod = 1;
-				statMod = this.battle.runEvent('Modify' + statTable[statName], this, null, null, statMod);
-				stat = this.battle.modify(stat, statMod);
+				let statTable = {atk:'Atk', def:'Def', spa:'SpA', spd:'SpD', spe:'Spe'};
+				stat = this.battle.runEvent('Modify' + statTable[statName], this, null, null, stat);
 			}
 
 			if (!unmodified) {
@@ -43,6 +43,11 @@ exports.BattleScripts = {
 			// Gen 2 caps stats at 999 and min is 1.
 			stat = this.battle.clampIntRange(stat, 1, 999);
 
+			// Screens
+			if ((this.side.sideConditions['reflect'] && statName === 'def') || (this.side.sideConditions['lightscreen'] && statName === 'spd')) {
+				stat *= 2;
+			}
+
 			// Treat here the items.
 			if ((this.species in {'Cubone':1, 'Marowak':1} && this.item === 'thickclub' && statName === 'atk') || (this.species === 'Pikachu' && this.item === 'lightball' && statName === 'spa')) {
 				stat *= 2;
@@ -52,24 +57,12 @@ exports.BattleScripts = {
 			}
 
 			return stat;
-		},
-		cureStatus: function () {
-			if (!this.hp) return false;
-			// unlike clearStatus, gives cure message
-			if (this.status) {
-				this.battle.add('-curestatus', this, this.status);
-				if (this.status === 'slp' && this.volatiles['nightmare']) {
-					// Nightmare status is removed here on gen 2.
-					this.removeVolatile('nightmare');
-				}
-				this.setStatus('');
-			}
 		}
 	},
 	// Battle scripts.
 	runMove: function (move, pokemon, target, sourceEffect) {
 		if (!sourceEffect && toId(move) !== 'struggle') {
-			var changedMove = this.runEvent('OverrideDecision', pokemon, target, move);
+			let changedMove = this.runEvent('OverrideDecision', pokemon, target, move);
 			if (changedMove && changedMove !== true) {
 				move = changedMove;
 				target = null;
@@ -91,6 +84,8 @@ exports.BattleScripts = {
 		if (!this.runEvent('BeforeMove', pokemon, target, move)) {
 			// Prevent invulnerability from persisting until the turn ends
 			pokemon.removeVolatile('twoturnmove');
+			// Rampage moves end without causing confusion
+			delete pokemon.volatiles['lockedmove'];
 			this.clearActiveMove(true);
 			// This is only run for sleep and fully paralysed.
 			this.runEvent('AfterMoveSelf', pokemon, target, move);
@@ -103,7 +98,7 @@ exports.BattleScripts = {
 			}
 		}
 		pokemon.lastDamage = 0;
-		var lockedMove = this.runEvent('LockMove', pokemon);
+		let lockedMove = this.runEvent('LockMove', pokemon);
 		if (lockedMove === true) lockedMove = false;
 		if (!lockedMove) {
 			if (!pokemon.deductPP(move, null, target) && (move.id !== 'struggle')) {
@@ -114,15 +109,15 @@ exports.BattleScripts = {
 		}
 		pokemon.moveUsed(move);
 		this.useMove(move, pokemon, target, sourceEffect);
-		this.runEvent('AfterMove', target, pokemon, move);
+		this.singleEvent('AfterMove', move, null, pokemon, target, move);
 		if (!move.selfSwitch && target.hp > 0) this.runEvent('AfterMoveSelf', pokemon, target, move);
 	},
 	moveHit: function (target, pokemon, move, moveData, isSecondary, isSelf) {
-		var damage;
+		let damage;
 		move = this.getMoveCopy(move);
 
 		if (!moveData) moveData = move;
-		var hitResult = true;
+		let hitResult = true;
 
 		if (move.target === 'all' && !isSelf) {
 			hitResult = this.singleEvent('TryHitField', moveData, {}, target, pokemon, move);
@@ -152,7 +147,7 @@ exports.BattleScripts = {
 		}
 
 		if (target) {
-			var didSomething = false;
+			let didSomething = false;
 			damage = this.getDamage(pokemon, target, moveData);
 
 			if ((damage || damage === 0) && !target.fainted) {
@@ -167,7 +162,7 @@ exports.BattleScripts = {
 				didSomething = true;
 			}
 			if (damage === false || damage === null) {
-				if (damage === false) {
+				if (damage === false && !isSecondary && !isSelf) {
 					this.add('-fail', target);
 				}
 				this.debug('damage calculation interrupted');
@@ -179,7 +174,7 @@ exports.BattleScripts = {
 				didSomething = didSomething || hitResult;
 			}
 			if (moveData.heal && !target.fainted) {
-				var d = target.heal(Math.round(target.maxhp * moveData.heal[0] / moveData.heal[1]));
+				let d = target.heal(Math.round(target.maxhp * moveData.heal[0] / moveData.heal[1]));
 				if (!d && d !== 0) {
 					this.add('-fail', target);
 					this.debug('heal interrupted');
@@ -252,7 +247,7 @@ exports.BattleScripts = {
 			}
 		}
 		if (moveData.self) {
-			var selfRoll;
+			let selfRoll;
 			if (!isSecondary && moveData.self.boosts) selfRoll = this.random(100);
 			// This is done solely to mimic in-game RNG behaviour. All self drops have a 100% chance of happening but still grab a random number.
 			if (typeof moveData.self.chance === 'undefined' || selfRoll < moveData.self.chance) {
@@ -260,14 +255,14 @@ exports.BattleScripts = {
 			}
 		}
 		if (moveData.secondaries && this.runEvent('TrySecondaryHit', target, pokemon, moveData)) {
-			for (var i = 0; i < moveData.secondaries.length; i++) {
+			for (let i = 0; i < moveData.secondaries.length; i++) {
 				// We check here whether to negate the probable secondary status if it's burn or freeze.
 				// In the game, this is checked and if true, the random number generator is not called.
 				// That means that a move that does not share the type of the target can status it.
 				// This means tri-attack can burn fire-types and freeze ice-types.
 				// Unlike gen 1, though, paralysis works for all unless the target is immune to direct move (ie. ground-types and t-wave).
 				if (!(moveData.secondaries[i].status && moveData.secondaries[i].status in {'brn':1, 'frz':1} && target && target.hasType(move.type))) {
-					var effectChance = Math.floor(moveData.secondaries[i].chance * 255 / 100);
+					let effectChance = Math.floor(moveData.secondaries[i].chance * 255 / 100);
 					if (typeof moveData.secondaries[i].chance === 'undefined' || this.random(256) <= effectChance) {
 						this.moveHit(target, pokemon, move, moveData.secondaries[i], true, isSelf);
 					}
@@ -290,15 +285,17 @@ exports.BattleScripts = {
 	getDamage: function (pokemon, target, move, suppressMessages) {
 		// First of all, we get the move.
 		if (typeof move === 'string') move = this.getMove(move);
-		if (typeof move === 'number') move = {
-			basePower: move,
-			type: '???',
-			category: 'Physical',
-			flags: {}
-		};
+		if (typeof move === 'number') {
+			move = {
+				basePower: move,
+				type: '???',
+				category: 'Physical',
+				flags: {}
+			};
+		}
 
 		// Let's test for immunities.
-		if (move.affectedByImmunities) {
+		if (!move.ignoreImmunity || (move.ignoreImmunity !== true && !move.ignoreImmunity[move.type])) {
 			if (!target.runImmunity(move.type, true)) {
 				return false;
 			}
@@ -306,11 +303,6 @@ exports.BattleScripts = {
 
 		// Is it an OHKO move?
 		if (move.ohko) {
-			// If it is, move hits if the Pokémon is more level.
-			if (target.level > pokemon.level) {
-				this.add('-failed', target);
-				return false;
-			}
 			return target.maxhp;
 		}
 
@@ -334,10 +326,10 @@ exports.BattleScripts = {
 		if (!move.defensiveCategory) move.defensiveCategory = move.category;
 		// '???' is typeless damage: used for Struggle and Confusion etc
 		if (!move.type) move.type = '???';
-		var type = move.type;
+		let type = move.type;
 
 		// We get the base power and apply basePowerCallback if necessary
-		var basePower = move.basePower;
+		let basePower = move.basePower;
 		if (move.basePowerCallback) {
 			basePower = move.basePowerCallback.call(this, pokemon, target, move);
 		}
@@ -351,7 +343,7 @@ exports.BattleScripts = {
 
 		// Checking for the move's Critical Hit ratio
 		move.critRatio = this.clampIntRange(move.critRatio, 0, 5);
-		var critMult = [0, 16, 8, 4, 3, 2];
+		let critMult = [0, 16, 8, 4, 3, 2];
 		move.crit = move.willCrit || false;
 		if (typeof move.willCrit === 'undefined') {
 			if (move.critRatio) {
@@ -365,7 +357,7 @@ exports.BattleScripts = {
 
 		// Happens after crit calculation
 		if (basePower) {
-			basePower = this.runEvent('BasePower', pokemon, target, move, basePower);
+			basePower = this.runEvent('BasePower', pokemon, target, move, basePower, true);
 			if (move.basePowerModifier) {
 				basePower *= move.basePowerModifier;
 			}
@@ -374,15 +366,15 @@ exports.BattleScripts = {
 		basePower = this.clampIntRange(basePower, 1);
 
 		// We now check for attacker and defender
-		var level = pokemon.level;
-		var attacker = pokemon;
-		var defender = target;
+		let level = pokemon.level;
+		let attacker = pokemon;
+		let defender = target;
 		if (move.useTargetOffensive) attacker = target;
 		if (move.useSourceDefensive) defender = pokemon;
-		var atkType = (move.category === 'Physical') ? 'atk' : 'spa';
-		var defType = (move.defensiveCategory === 'Physical') ? 'def' : 'spd';
-		var unboosted = false;
-		var noburndrop = false;
+		let atkType = (move.category === 'Physical') ? 'atk' : 'spa';
+		let defType = (move.defensiveCategory === 'Physical') ? 'def' : 'spd';
+		let unboosted = false;
+		let noburndrop = false;
 
 		// The move is a critical hit. Several things happen here.
 		if (move.crit) {
@@ -399,8 +391,8 @@ exports.BattleScripts = {
 			}
 		}
 		// Get stats now.
-		var attack = attacker.getStat(atkType, unboosted, noburndrop);
-		var defense = defender.getStat(defType, unboosted);
+		let attack = attacker.getStat(atkType, unboosted, noburndrop);
+		let defense = defender.getStat(defType, unboosted);
 
 		// Moves that ignore offense and defense respectively.
 		if (move.ignoreOffensive) {
@@ -427,7 +419,7 @@ exports.BattleScripts = {
 
 		// Let's go with the calculation now that we have what we need.
 		// We do it step by step just like the game does.
-		var damage = level * 2;
+		let damage = level * 2;
 		damage = Math.floor(damage / 5);
 		damage += 2;
 		damage *= basePower;
@@ -436,13 +428,20 @@ exports.BattleScripts = {
 		damage = this.clampIntRange(Math.floor(damage / 50), 1, 997);
 		damage += 2;
 
+		// Weather modifiers
+		if ((this.isWeather('raindance') && type === 'Water') || (this.isWeather('sunnyday') && type === 'Fire')) {
+			damage = Math.floor(damage * 1.5);
+		} else if ((this.isWeather('raindance') && (type === 'Fire' || move.id === 'solarbeam')) || (this.isWeather('sunnyday') && type === 'Water')) {
+			damage = Math.floor(damage / 2);
+		}
+
 		// STAB damage bonus, the "???" type never gets STAB
 		if (type !== '???' && pokemon.hasType(type)) {
 			damage += Math.floor(damage / 2);
 		}
 
 		// Type effectiveness
-		var totalTypeMod = this.getEffectiveness(type, target);
+		let totalTypeMod = this.getEffectiveness(type, target);
 		// Super effective attack
 		if (totalTypeMod > 0) {
 			if (!suppressMessages) this.add('-supereffective', target);
@@ -460,8 +459,8 @@ exports.BattleScripts = {
 			}
 		}
 
-		// Apply random factor is damage is greater than 1
-		if (damage > 1) {
+		// Apply random factor is damage is greater than 1, except for Flail and Reversal
+		if (!move.noDamageVariance && damage > 1) {
 			damage *= this.random(217, 256);
 			damage = Math.floor(damage / 255);
 		}
@@ -473,352 +472,6 @@ exports.BattleScripts = {
 
 		// We are done, this is the final damage
 		return damage;
-	},
-	getResidualStatuses: function (thing, callbackType) {
-		var statuses = this.getRelevantEffectsInner(thing || this, callbackType || 'residualCallback', null, null, false, true, 'duration');
-		statuses.sort(this.comparePriority);
-		return statuses;
-	},
-	residualEvent: function (eventid, relayVar) {
-		var statuses = this.getRelevantEffectsInner(this, 'on' + eventid, null, null, false, true, 'duration');
-		statuses.sort(this.comparePriority);
-		while (statuses.length) {
-			var statusObj = statuses.shift();
-			var status = statusObj.status;
-			if (statusObj.thing.fainted) continue;
-			if (statusObj.statusData && statusObj.statusData.duration) {
-				statusObj.statusData.duration--;
-				if (!statusObj.statusData.duration) {
-					statusObj.end.call(statusObj.thing, status.id);
-					continue;
-				}
-			}
-			this.singleEvent(eventid, status, statusObj.statusData, statusObj.thing, relayVar);
-		}
-	},
-	getRelevantEffects: function (thing, callbackType, foeCallbackType, foeThing, checkChildren) {
-		var statuses = this.getRelevantEffectsInner(thing, callbackType, foeCallbackType, foeThing, true, false);
-		statuses.sort(this.comparePriority);
-		return statuses;
-	},
-	addQueue: function (decision, noSort, side) {
-		if (decision) {
-			if (Array.isArray(decision)) {
-				for (var i = 0; i < decision.length; i++) {
-					this.addQueue(decision[i], noSort);
-				}
-				return;
-			}
-			if (decision.choice === 'pass') return;
-			if (!decision.side && side) decision.side = side;
-			if (!decision.side && decision.pokemon) decision.side = decision.pokemon.side;
-			if (!decision.choice && decision.move) decision.choice = 'move';
-			if (!decision.priority) {
-				var priorities = {
-					'beforeTurn': 100,
-					'beforeTurnMove': 99,
-					'switch': 6,
-					'runSwitch': 6.1,
-					'residual': -100,
-					'team': 102,
-					'start': 101
-				};
-				if (priorities[decision.choice]) {
-					decision.priority = priorities[decision.choice];
-				}
-			}
-			if (decision.choice === 'move') {
-				if (this.getMove(decision.move).beforeTurnCallback) {
-					this.addQueue({choice: 'beforeTurnMove', pokemon: decision.pokemon, move: decision.move, targetLoc: decision.targetLoc}, true);
-				}
-			} else if (decision.choice === 'switch') {
-				if (decision.pokemon.switchFlag && decision.pokemon.switchFlag !== true) {
-					decision.pokemon.switchCopyFlag = decision.pokemon.switchFlag;
-				}
-				decision.pokemon.switchFlag = false;
-				if (!decision.speed && decision.pokemon && decision.pokemon.isActive) decision.speed = decision.pokemon.speed;
-			}
-			if (decision.move) {
-				var target;
-
-				if (!decision.targetPosition) {
-					target = this.resolveTarget(decision.pokemon, decision.move);
-					decision.targetSide = target.side;
-					decision.targetPosition = target.position;
-				}
-
-				decision.move = this.getMove(decision.move);
-				if (!decision.priority) {
-					var priority = decision.move.priority;
-					priority = this.runEvent('ModifyPriority', decision.pokemon, target, decision.move, priority);
-					decision.priority = priority;
-				}
-			}
-			if (!decision.pokemon && !decision.speed) decision.speed = 1;
-			if (!decision.speed && decision.choice === 'switch' && decision.target) decision.speed = decision.target.speed;
-			if (!decision.speed) decision.speed = decision.pokemon.speed;
-
-			if (decision.choice === 'switch' && !decision.side.pokemon[0].isActive) {
-				// if there's no actives, switches happen before activations
-				decision.priority = 6.2;
-			}
-
-			this.queue.push(decision);
-		}
-		if (!noSort) {
-			this.queue.sort(this.comparePriority);
-		}
-	},
-	comparePriority: function (a, b) {
-		a.priority = a.priority || 0;
-		a.subPriority = a.subPriority || 0;
-		a.speed = a.speed || 0;
-		b.priority = b.priority || 0;
-		b.subPriority = b.subPriority || 0;
-		b.speed = b.speed || 0;
-		if ((typeof a.order === 'number' || typeof b.order === 'number') && a.order !== b.order) {
-			if (typeof a.order !== 'number') {
-				return -1;
-			}
-			if (typeof b.order !== 'number') {
-				return 1;
-			}
-			if (b.order - a.order) {
-				return -(b.order - a.order);
-			}
-		}
-		if (b.priority - a.priority) {
-			return b.priority - a.priority;
-		}
-		if (b.speed - a.speed) {
-			return b.speed - a.speed;
-		}
-		if (b.subOrder - a.subOrder) {
-			return -(b.subOrder - a.subOrder);
-		}
-		return Math.random() - 0.5;
-	},
-	runDecision: function (decision) {
-		// We have to declare here the vars we are going to use on the switch outside of blocks due to the let hack on the gulpfile.
-		var pokemon, beginCallback, target, i;
-
-		// returns whether or not we ended in a callback
-		switch (decision.choice) {
-		case 'start':
-			// I GIVE UP, WILL WRESTLE WITH EVENT SYSTEM LATER
-			beginCallback = this.getFormat().onBegin;
-			if (beginCallback) beginCallback.call(this);
-
-			this.add('start');
-			for (var pos = 0; pos < this.p1.active.length; pos++) {
-				this.switchIn(this.p1.pokemon[pos], pos);
-			}
-			for (var pos = 0; pos < this.p2.active.length; pos++) {
-				this.switchIn(this.p2.pokemon[pos], pos);
-			}
-			for (var pos = 0; pos < this.p1.pokemon.length; pos++) {
-				pokemon = this.p1.pokemon[pos];
-				this.singleEvent('Start', this.getEffect(pokemon.species), pokemon.speciesData, pokemon);
-			}
-			for (var pos = 0; pos < this.p2.pokemon.length; pos++) {
-				pokemon = this.p2.pokemon[pos];
-				this.singleEvent('Start', this.getEffect(pokemon.species), pokemon.speciesData, pokemon);
-			}
-			this.midTurn = true;
-			break;
-		case 'move':
-			if (!decision.pokemon.isActive) return false;
-			if (decision.pokemon.fainted) return false;
-			this.runMove(decision.move, decision.pokemon, this.getTarget(decision), decision.sourceEffect);
-			break;
-		case 'beforeTurnMove':
-			if (!decision.pokemon.isActive) return false;
-			if (decision.pokemon.fainted) return false;
-			this.debug('before turn callback: ' + decision.move.id);
-			target = this.getTarget(decision);
-			if (!target) return false;
-			decision.move.beforeTurnCallback.call(this, decision.pokemon, target);
-			break;
-		case 'event':
-			this.runEvent(decision.event, decision.pokemon);
-			break;
-		case 'team':
-			i = parseInt(decision.team[0], 10) - 1;
-			if (i >= 6 || i < 0) return;
-
-			if (decision.team[1]) {
-				// validate the choice
-				var len = decision.side.pokemon.length;
-				var newPokemon = [null, null, null, null, null, null].slice(0, len);
-				for (var j = 0; j < len; j++) {
-					var i = parseInt(decision.team[j], 10) - 1;
-					newPokemon[j] = decision.side.pokemon[i];
-				}
-				var reject = false;
-				for (var j = 0; j < len; j++) {
-					if (!newPokemon[j]) reject = true;
-				}
-				if (!reject) {
-					for (var j = 0; j < len; j++) {
-						newPokemon[j].position = j;
-					}
-					decision.side.pokemon = newPokemon;
-					return;
-				}
-			}
-
-			if (i === 0) return;
-			pokemon = decision.side.pokemon[i];
-			if (!pokemon) return;
-			decision.side.pokemon[i] = decision.side.pokemon[0];
-			decision.side.pokemon[0] = pokemon;
-			decision.side.pokemon[i].position = i;
-			decision.side.pokemon[0].position = 0;
-			// we return here because the update event would crash since there are no active pokemon yet
-			return;
-		case 'pass':
-			if (!decision.priority || decision.priority <= 101) return;
-			if (decision.pokemon) {
-				decision.pokemon.switchFlag = false;
-			}
-			break;
-		case 'switch':
-			if (decision.pokemon) {
-				decision.pokemon.beingCalledBack = true;
-				var lastMove = this.getMove(decision.pokemon.lastMove);
-				if (lastMove.selfSwitch !== 'copyvolatile') {
-					this.runEvent('BeforeSwitchOut', decision.pokemon);
-				}
-				if (!this.runEvent('SwitchOut', decision.pokemon)) {
-					break;
-				}
-				this.singleEvent('End', this.getAbility(decision.pokemon.ability), decision.pokemon.abilityData, decision.pokemon);
-			}
-			if (decision.pokemon && !decision.pokemon.hp && !decision.pokemon.fainted) {
-				// A pokemon fainted from Pursuit before it could switch.
-				// In gen 2, the switch still happens.
-				decision.priority = -101;
-				this.queue.unshift(decision);
-				this.debug('Pursuit target fainted');
-				break;
-			}
-			if (decision.target.isActive) {
-				this.debug('Switch target is already active');
-				break;
-			}
-			this.switchIn(decision.target, decision.pokemon.position);
-			break;
-		case 'runSwitch':
-			this.runEvent('SwitchIn', decision.pokemon);
-			if (!decision.pokemon.side.faintedThisTurn && decision.pokemon.draggedIn !== this.turn) this.runEvent('AfterSwitchInSelf', decision.pokemon);
-			if (!decision.pokemon.hp) break;
-			decision.pokemon.isStarted = true;
-			if (!decision.pokemon.fainted) {
-				this.singleEvent('Start', decision.pokemon.getAbility(), decision.pokemon.abilityData, decision.pokemon);
-				this.singleEvent('Start', decision.pokemon.getItem(), decision.pokemon.itemData, decision.pokemon);
-			}
-			delete decision.pokemon.draggedIn;
-			break;
-		case 'beforeTurn':
-			this.eachEvent('BeforeTurn');
-			break;
-		case 'residual':
-			this.add('');
-			this.clearActiveMove(true);
-			this.residualEvent('Residual');
-			break;
-		}
-
-		// phazing (Roar, etc)
-
-		var self = this;
-		function checkForceSwitchFlag(a) {
-			if (!a) return false;
-			if (a.hp && a.forceSwitchFlag) {
-				self.dragIn(a.side, a.position);
-			}
-			delete a.forceSwitchFlag;
-		}
-		this.p1.active.forEach(checkForceSwitchFlag);
-		this.p2.active.forEach(checkForceSwitchFlag);
-
-		this.clearActiveMove();
-
-		// fainting
-
-		this.faintMessages();
-		if (this.ended) return true;
-
-		// switching (fainted pokemon, U-turn, Baton Pass, etc)
-
-		if (!this.queue.length || this.queue[0].choice in {move:1, residual:1}) {
-			// in gen 3 or earlier, switching in fainted pokemon is done after
-			// every move, rather than only at the end of the turn.
-			this.checkFainted();
-		} else if (decision.choice === 'pass') {
-			this.eachEvent('Update');
-			return false;
-		}
-
-		function hasSwitchFlag(a) { return a ? a.switchFlag : false; }
-		function removeSwitchFlag(a) { if (a) a.switchFlag = false; }
-		var p1switch = this.p1.active.any(hasSwitchFlag);
-		var p2switch = this.p2.active.any(hasSwitchFlag);
-
-		if (p1switch && !this.canSwitch(this.p1)) {
-			this.p1.active.forEach(removeSwitchFlag);
-			p1switch = false;
-		}
-		if (p2switch && !this.canSwitch(this.p2)) {
-			this.p2.active.forEach(removeSwitchFlag);
-			p2switch = false;
-		}
-
-		if (p1switch || p2switch) {
-			this.makeRequest('switch');
-			return true;
-		}
-
-		this.eachEvent('Update');
-
-		return false;
-	},
-	dragIn: function (side, pos) {
-		if (pos >= side.active.length) return false;
-		var pokemon = this.getRandomSwitchable(side);
-		if (!pos) pos = 0;
-		if (!pokemon || pokemon.isActive) return false;
-		this.runEvent('BeforeSwitchIn', pokemon);
-		if (side.active[pos]) {
-			var oldActive = side.active[pos];
-			if (!oldActive.hp) {
-				return false;
-			}
-			if (!this.runEvent('DragOut', oldActive)) {
-				return false;
-			}
-			this.runEvent('SwitchOut', oldActive);
-			this.singleEvent('End', this.getAbility(oldActive.ability), oldActive.abilityData, oldActive);
-			oldActive.isActive = false;
-			oldActive.isStarted = false;
-			oldActive.position = pokemon.position;
-			pokemon.position = pos;
-			side.pokemon[pokemon.position] = pokemon;
-			side.pokemon[oldActive.position] = oldActive;
-			this.cancelMove(oldActive);
-			oldActive.clearVolatile();
-		}
-		side.active[pos] = pokemon;
-		pokemon.isActive = true;
-		pokemon.activeTurns = 0;
-		pokemon.draggedIn = this.turn;
-		for (var m in pokemon.moveset) {
-			pokemon.moveset[m].used = false;
-		}
-		this.add('drag', pokemon, pokemon.getDetails);
-		pokemon.update();
-		this.addQueue({pokemon: pokemon, choice: 'runSwitch'});
-		return true;
 	},
 	damage: function (damage, target, source, effect) {
 		if (this.event) {
@@ -850,7 +503,7 @@ exports.BattleScripts = {
 		if (damage !== 0) damage = this.clampIntRange(damage, 1);
 		damage = target.damage(damage, source, effect);
 		if (source) source.lastDamage = damage;
-		var name = effect.fullname;
+		let name = effect.fullname;
 		if (name === 'tox') name = 'psn';
 		switch (effect.id) {
 		case 'partiallytrapped':
@@ -880,5 +533,315 @@ exports.BattleScripts = {
 		}
 
 		return damage;
+	},
+	randomTeam: function (side) {
+		let pokemonLeft = 0;
+		let pokemon = [];
+
+		let handicapMons = {'magikarp':1, 'weedle':1, 'kakuna':1, 'caterpie':1, 'metapod':1, 'ditto':1};
+		let nuTiers = {'UU':1, 'BL':1, 'NFE':1, 'LC':1};
+		let uuTiers = {'NFE':1, 'UU':1, 'BL':1};
+
+		let n = 1;
+		let pokemonPool = [];
+		for (let id in this.data.FormatsData) {
+			// FIXME: Not ES-compliant
+			if (n++ > 251 || !this.data.FormatsData[id].randomBattleMoves) continue;
+			pokemonPool.push(id);
+		}
+
+		// Setup storage.
+		let typeCount = {};
+		let uberCount = 0;
+		let nuCount = 0;
+		let hasShitmon = false;
+
+		while (pokemonPool.length && pokemonLeft < 6) {
+			let template = this.getTemplate(this.sampleNoReplace(pokemonPool));
+			if (!template.exists) continue;
+
+			// Bias the tiers so you get less shitmons and only one of the two Ubers.
+			// If you have a shitmon, you're covered in OUs and Ubers if possible
+			let tier = template.tier;
+			switch (tier) {
+			case 'LC':
+				if (nuCount > 1 || hasShitmon) continue;
+				break;
+			case 'Uber':
+				// Unless you have one of the worst mons, in that case we allow luck to give you all Ubers.
+				if (uberCount >= 1 && !hasShitmon) continue;
+				break;
+			default:
+				if (uuTiers[tier] && (hasShitmon || (nuCount > 2 && this.random(2) >= 1))) continue;
+			}
+
+			// Limit 2 of any type. Diversity and minor weakness count.
+			// The second of a same type has halved chance of being added.
+			let types = template.types;
+			let skip = false;
+			for (let t = 0; t < types.length; t++) {
+				if (typeCount[types[t]] > 1 || (typeCount[types[t]] === 1 && this.random(2) >= 1)) {
+					skip = true;
+					break;
+				}
+			}
+			if (skip) continue;
+
+			// The set passes the limitations.
+			let set = this.randomSet(template, pokemon.length);
+			pokemon.push(set);
+
+			// Now let's increase the counters. First, the Pokémon left.
+			pokemonLeft++;
+
+			// Type counter.
+			for (let t = 0; t < types.length; t++) {
+				if (typeCount[types[t]]) {
+					typeCount[types[t]]++;
+				} else {
+					typeCount[types[t]] = 1;
+				}
+			}
+
+			// Increment type bias counters.
+			if (tier === 'Uber') {
+				uberCount++;
+			} else if (nuTiers[tier]) {
+				nuCount++;
+			}
+
+			// Is it a shitmon?
+			if (handicapMons[template.speciesid]) hasShitmon = true;
+		}
+
+		return pokemon;
+	},
+	// Random set generation for Gen 2 Random Battles.
+	randomSet: function (template, slot) {
+		if (slot === undefined) slot = 1;
+		template = this.getTemplate(template);
+		if (!template.exists) template = this.getTemplate('unown');
+
+		let movePool = template.randomBattleMoves.slice();
+		let moves = [];
+		let hasType = {};
+		hasType[template.types[0]] = true;
+		if (template.types[1]) hasType[template.types[1]] = true;
+		let hasMove = {};
+		let counter = {};
+		let setupType = '';
+		let item = 'leftovers';
+		let ivs = {hp: 30, atk: 30, def: 30, spa: 30, spd: 30, spe: 30};
+
+		// Moves that boost Attack:
+		let PhysicalSetup = {
+			swordsdance:1, sharpen:1
+		};
+		// Moves which boost Special Attack:
+		let SpecialSetup = {
+			amnesia:1, growth:1
+		};
+
+		do {
+			// Keep track of all moves we have:
+			hasMove = {};
+			for (let k = 0; k < moves.length; k++) {
+				if (moves[k].substr(0, 11) === 'hiddenpower') {
+					hasMove['hiddenpower'] = true;
+				} else {
+					hasMove[moves[k]] = true;
+				}
+			}
+
+			// Choose next 4 moves from learnset/viable moves and add them to moves list:
+			while (moves.length < 4 && movePool.length) {
+				let moveid = this.sampleNoReplace(movePool);
+				if (moveid.substr(0, 11) === 'hiddenpower') {
+					if (hasMove['hiddenpower']) continue;
+					hasMove['hiddenpower'] = true;
+				} else {
+					hasMove[moveid] = true;
+				}
+				moves.push(moveid);
+			}
+
+			counter = {Physical: 0, Special: 0, Status: 0, physicalsetup: 0, specialsetup: 0};
+			for (let k = 0; k < moves.length; k++) {
+				let move = this.getMove(moves[k]);
+				let moveid = move.id;
+				if (!move.damage && !move.damageCallback) {
+					counter[move.category]++;
+				}
+				if (PhysicalSetup[moveid]) {
+					counter['physicalsetup']++;
+				}
+				if (SpecialSetup[moveid]) {
+					counter['specialsetup']++;
+				}
+			}
+
+			if (counter['specialsetup']) {
+				setupType = 'Special';
+			} else if (counter['physicalsetup']) {
+				setupType = 'Physical';
+			}
+
+			for (let k = 0; k < moves.length; k++) {
+				let moveid = moves[k];
+				let move = this.getMove(moveid);
+				let rejected = false;
+				if (moveid.substr(0, 11) === 'hiddenpower') {
+					// Check for hidden power DVs
+					let HPivs = this.getType(move.type).HPivs;
+					for (let iv in HPivs) {
+						ivs[iv] = HPivs[iv];
+					}
+					moveid = 'hiddenpower';
+				}
+				if (!template.essentialMove || moveid !== template.essentialMove) {
+					let isSetup = false;
+
+					switch (moveid) {
+					// bad after setup
+					case 'seismictoss': case 'nightshade':
+						if (setupType) rejected = true;
+						break;
+					// bit redundant to have both
+					case 'flamethrower':
+						if (hasMove['fireblast']) rejected = true;
+						break;
+					case 'fireblast':
+						if (hasMove['flamethrower']) rejected = true;
+						break;
+					case 'icebeam':
+						if (hasMove['blizzard']) rejected = true;
+						break;
+					// Hydropump and surf are both valid options, just avoid one with eachother.
+					case 'hydropump':
+						if (hasMove['surf']) rejected = true;
+						break;
+					case 'surf':
+						if (hasMove['hydropump']) rejected = true;
+						break;
+					case 'petaldance': case 'solarbeam':
+						if (hasMove['megadrain'] || hasMove['razorleaf']) rejected = true;
+						break;
+					case 'megadrain':
+						if (hasMove['razorleaf']) rejected = true;
+						break;
+					case 'thunder':
+						if (hasMove['thunderbolt']) rejected = true;
+						break;
+					case 'thunderbolt':
+						if (hasMove['thunder']) rejected = true;
+						break;
+					case 'bonemerang':
+						if (hasMove['earthquake']) rejected = true;
+						break;
+					case 'rest':
+						if (hasMove['recover'] || hasMove['softboiled'] || hasMove['roar']) rejected = true;
+						break;
+					case 'softboiled':
+						if (hasMove['recover']) rejected = true;
+						break;
+					case 'sharpen':
+					case 'swordsdance':
+						if (counter['Special'] > counter['Physical'] || hasMove['slash'] || !counter['Physical'] || hasMove['growth']) rejected = true;
+						break;
+					case 'growth':
+						if (counter['Special'] < counter['Physical'] || hasMove['swordsdance'] || hasMove['amnesia']) rejected = true;
+						break;
+					case 'doubleedge':
+						if (hasMove['bodyslam']) rejected = true;
+						break;
+					case 'mimic':
+						if (hasMove['mirrormove']) rejected = true;
+						break;
+					case 'superfang':
+						if (hasMove['bodyslam']) rejected = true;
+						break;
+					case 'rockslide':
+						if (hasMove['earthquake'] && hasMove['bodyslam'] && hasMove['hyperbeam']) rejected = true;
+						break;
+					case 'bodyslam':
+						if (hasMove['thunderwave']) rejected = true;
+						break;
+					case 'megakick':
+						if (hasMove['bodyslam']) rejected = true;
+						break;
+					case 'eggbomb':
+						if (hasMove['hyperbeam']) rejected = true;
+						break;
+					case 'triattack':
+						if (hasMove['doubleedge']) rejected = true;
+						break;
+					case 'supersonic':
+						if (hasMove['confuseray']) rejected = true;
+						break;
+					case 'poisonpowder':
+						if (hasMove['toxic'] || counter['Status'] > 1) rejected = true;
+						break;
+					case 'stunspore':
+						if (hasMove['sleeppowder'] || counter['Status'] > 1) rejected = true;
+						break;
+					case 'sleeppowder':
+						if (hasMove['stunspore'] || counter['Status'] > 2) rejected = true;
+						break;
+					case 'toxic':
+						if (hasMove['sleeppowder'] || hasMove['stunspore'] || counter['Status'] > 1) rejected = true;
+						break;
+					} // End of switch for moveid
+				}
+				if (rejected && movePool.length) {
+					moves.splice(k, 1);
+					break;
+				}
+				counter[move.category]++;
+			} // End of for
+		} while (moves.length < 4 && movePool.length);
+
+		// Add specific items.
+		switch (template.species) {
+		case 'Cubone':
+		case 'Marowak':
+			item = 'thickclub';
+			ivs.atk = 26;
+			break;
+		case 'Pikachu':
+			item = 'lightball';
+			break;
+		case 'Ditto':
+			item = 'metalpowder';
+			break;
+		}
+
+		let levelScale = {
+			LC: 96,
+			NFE: 90,
+			UU: 85,
+			BL: 83,
+			OU: 79,
+			Uber: 74
+		};
+		// Hollistic judgment.
+		let customScale = {
+			Caterpie: 99, Kakuna: 99, Magikarp: 99, Metapod: 99, Weedle: 99, Pichu: 99, Smoochum: 99,
+			Clefairy: 95, "Farfetch'd": 99, Igglybuff: 99, Jigglypuff: 99, Ditto: 99, Mewtwo: 70,
+			Dragonite: 85, Cloyster: 83, Staryu: 90
+		};
+		let level = levelScale[template.tier] || 90;
+		if (customScale[template.name]) level = customScale[template.name];
+
+		return {
+			name: template.name,
+			moves: moves,
+			ability: 'None',
+			evs: {hp: 255, atk: 255, def: 255, spa: 255, spd: 255, spe: 255},
+			ivs: ivs,
+			item: item,
+			level: level,
+			shiny: false,
+			gender: 'M'
+		};
 	}
 };

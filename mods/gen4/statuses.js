@@ -1,3 +1,5 @@
+'use strict';
+
 exports.BattleStatuses = {
 	par: {
 		inherit: true,
@@ -29,6 +31,18 @@ exports.BattleStatuses = {
 			if (move.sleepUsable) {
 				return;
 			}
+			return false;
+		}
+	},
+	frz: {
+		inherit: true,
+		onBeforeMove: function (pokemon, target, move) {
+			if (this.random(5) === 0) {
+				pokemon.cureStatus();
+				return;
+			}
+			if (move.flags['defrost']) return;
+			this.add('cant', pokemon, 'frz');
 			return false;
 		}
 	},

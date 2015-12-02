@@ -1,12 +1,6 @@
+'use strict';
+
 exports.BattleStatuses = {
-	brn: {
-		inherit: true,
-		onBasePower: function (basePower, attacker, defender, move) {
-			if (move && move.category === 'Physical' && attacker && !attacker.hasAbility('guts')) {
-				return this.chainModify(0.5); // This should really take place directly in the damage function but it's here for now
-			}
-		}
-	},
 	slp: {
 		inherit: true,
 		onSwitchIn: function (target) {
@@ -17,7 +11,7 @@ exports.BattleStatuses = {
 		inherit: true,
 		onResidual: function (pokemon) {
 			if (this.effectData.source && (!this.effectData.source.isActive || this.effectData.source.hp <= 0)) {
-				pokemon.removeVolatile('partiallytrapped');
+				delete pokemon.volatiles['partiallytrapped'];
 				return;
 			}
 			if (this.effectData.source.hasItem('bindingband')) {
@@ -37,7 +31,7 @@ exports.BattleStatuses = {
 		onStallMove: function () {
 			// this.effectData.counter should never be undefined here.
 			// However, just in case, use 1 if it is undefined.
-			var counter = this.effectData.counter || 1;
+			let counter = this.effectData.counter || 1;
 			if (counter >= 256) {
 				// 2^32 - special-cased because Battle.random(n) can't handle n > 2^16 - 1
 				return (this.random() * 4294967296 < 1);

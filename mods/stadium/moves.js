@@ -1,7 +1,45 @@
+'use strict';
+
 exports.BattleMovedex = {
+	"acid": {
+		inherit: true,
+		secondary: {
+			chance: 33,
+			boosts: {
+				def: -1
+			}
+		}
+	},
+	aurorabeam: {
+		inherit: true,
+		secondary: {
+			chance: 33,
+			boosts: {
+				atk: -1
+			}
+		}
+	},
 	bind: {
 		inherit: true,
 		onBeforeMove: function () {}
+	},
+	bubble: {
+		inherit: true,
+		secondary: {
+			chance: 33,
+			boosts: {
+				spe: -1
+			}
+		}
+	},
+	bubblebeam: {
+		inherit: true,
+		secondary: {
+			chance: 33,
+			boosts: {
+				spe: -1
+			}
+		}
 	},
 	clamp: {
 		inherit: true,
@@ -38,13 +76,13 @@ exports.BattleMovedex = {
 			},
 			onAfterMoveSelfPriority: 1,
 			onAfterMoveSelf: function (pokemon) {
-				var leecher = pokemon.side.foe.active[pokemon.volatiles['leechseed'].sourcePosition];
+				let leecher = pokemon.side.foe.active[pokemon.volatiles['leechseed'].sourcePosition];
 				if (!leecher || leecher.fainted || leecher.hp <= 0) {
 					this.debug('Nothing to leech into');
 					return;
 				}
-				var toLeech = this.clampIntRange(Math.floor(pokemon.maxhp / 16), 1);
-				var damage = this.damage(toLeech, pokemon, leecher);
+				let toLeech = this.clampIntRange(Math.floor(pokemon.maxhp / 16), 1);
+				let damage = this.damage(toLeech, pokemon, leecher);
 				if (damage) this.heal(damage, leecher, pokemon);
 			}
 		}
@@ -127,7 +165,7 @@ exports.BattleMovedex = {
 					return null;
 				}
 				if (move.category === 'Status') {
-					var SubBlocked = {
+					let SubBlocked = {
 						leechseed:1, lockon:1, mindreader:1, nightmare:1
 					};
 					if (move.status || move.boosts || move.volatileStatus === 'confusion' || SubBlocked[move.id]) {
@@ -137,7 +175,7 @@ exports.BattleMovedex = {
 					return;
 				}
 				if (move.volatileStatus && target === source) return;
-				var damage = this.getDamage(source, target, move);
+				let damage = this.getDamage(source, target, move);
 				if (!damage) return null;
 				damage = this.runEvent('SubDamage', target, source, move, damage);
 				if (!damage) return damage;
